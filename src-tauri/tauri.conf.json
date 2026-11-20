@@ -84,7 +84,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRDRUEyRjY2OTRCMTdFNzUKUldSMWZyR1VaaS9xVENhaDljUkpjK05rdS9xTTBQNkJwWWJTbTc2U09KbDVqRUVBTTl3eGFGbjEK",
       "endpoints": [
-        "https://github.com/nexonauts/airlock/releases/latest/download/latest.json"
+        "https://github.com/kanakkholwal/airlock/releases/latest/download/latest.json"
       ]
     }
   }

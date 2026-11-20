@@ -213,6 +213,15 @@ impl ChatStore {
         Ok(out)
     }
 
+    /// Removes the newest message, used when a reply is regenerated.
+    pub fn delete_last_message(&self, conversation_id: i64) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM messages WHERE id = (SELECT MAX(id) FROM messages WHERE conversation_id = ?1)",
+            params![conversation_id],
+        )?;
+        Ok(())
+    }
+
     pub fn rename_conversation(&self, id: i64, title: &str) -> Result<()> {
         self.conn.execute(
             "UPDATE conversations SET title = ?1 WHERE id = ?2",
@@ -268,6 +277,20 @@ mod tests {
         assert_eq!(got.len(), 2);
         assert_eq!(got[0].parts, parts);
         assert_eq!(got[1].role, Role::Tool);
+    }
+
+    #[test]
+    fn deleting_the_last_message_removes_its_parts_only() {
+        let mut s = ChatStore::in_memory().unwrap();
+        let c = s.create_conversation("t", None).unwrap();
+        s.append_message(c, Role::User, &[Part::Text { text: "q".into() }])
+            .unwrap();
+        s.append_message(c, Role::Assistant, &[Part::Text { text: "a".into() }])
+            .unwrap();
+        s.delete_last_message(c).unwrap();
+        let left = s.load_messages(c).unwrap();
+        assert_eq!(left.len(), 1);
+        assert_eq!(left[0].role, Role::User);
     }
 
     #[test]

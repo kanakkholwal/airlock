@@ -232,8 +232,18 @@ fn stage_transcribe_runtime_libs() {
 
     let mut copied = 0usize;
     for &(name, src, _) in best.values() {
-        std::fs::copy(src, dest.join(name))
-            .unwrap_or_else(|e| panic!("copy {}: {e}", src.display()));
+        let target = dest.join(name);
+        // Decision (code): skip identical files. A running app keeps its DLLs open on
+        // Windows, and recopying unchanged ones would fail the build for no reason.
+        if !same_contents(src, &target) {
+            std::fs::copy(src, &target).unwrap_or_else(|e| {
+                panic!(
+                    "copy {} -> {}: {e} (if the file is in use, stop the running app and rebuild)",
+                    src.display(),
+                    target.display()
+                )
+            });
+        }
         copied += 1;
     }
     if copied == 0 {
@@ -244,6 +254,15 @@ fn stage_transcribe_runtime_libs() {
         );
     }
     println!("cargo:warning=Staged {copied} transcribe-cpp runtime library file(s)");
+}
+
+fn same_contents(a: &std::path::Path, b: &std::path::Path) -> bool {
+    match (std::fs::metadata(a), std::fs::metadata(b)) {
+        (Ok(x), Ok(y)) if x.len() == y.len() => {
+            matches!((std::fs::read(a), std::fs::read(b)), (Ok(p), Ok(q)) if p == q)
+        }
+        _ => false,
+    }
 }
 
 /// Split a versioned ELF shared-library name into (stem, version depth):

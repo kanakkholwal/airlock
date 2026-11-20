@@ -44,6 +44,8 @@ pub enum EngineState {
         model: String,
         backend: Backend,
         port: u16,
+        /// Context window in tokens, the single source for the UI's context meter.
+        context: u32,
     },
     Failed {
         reason: String,
@@ -55,6 +57,8 @@ pub struct LlmStateChanged(pub EngineState);
 
 struct Inner {
     child: Option<Child>,
+    // Random per launch; requests without it are rejected by llama-server.
+    api_key: Option<String>,
     state: EngineState,
     // Bumped on every start/stop so a stale load task never overwrites newer state.
     generation: u64,
@@ -69,6 +73,7 @@ impl Default for LlmEngine {
         Self {
             inner: Mutex::new(Inner {
                 child: None,
+                api_key: None,
                 state: EngineState::Stopped,
                 generation: 0,
             }),
@@ -108,6 +113,15 @@ fn find_server(engines_dir: &std::path::Path, backend: Backend) -> Option<(PathB
     })
 }
 
+/// Decision (security): the loopback server is protected by a per-launch key, so other local
+/// programs and web pages cannot use the model or read prompts.
+fn new_api_key() -> String {
+    use rand::RngCore;
+    let mut bytes = [0u8; 32];
+    rand::rngs::OsRng.fill_bytes(&mut bytes);
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
 fn free_port() -> std::io::Result<u16> {
     Ok(std::net::TcpListener::bind("127.0.0.1:0")?
         .local_addr()?
@@ -117,6 +131,10 @@ fn free_port() -> std::io::Result<u16> {
 impl LlmEngine {
     pub async fn state(&self) -> EngineState {
         self.inner.lock().await.state.clone()
+    }
+
+    pub async fn api_key(&self) -> Option<String> {
+        self.inner.lock().await.api_key.clone()
     }
 
     async fn set_state(&self, app: &tauri::AppHandle, generation: u64, state: EngineState) {
@@ -159,6 +177,7 @@ impl LlmEngine {
         let port = free_port().map_err(|e| e.to_string())?;
         let model_name = model_id;
 
+        let api_key = new_api_key();
         let mut cmd = Command::new(&exe);
         cmd.arg("-m")
             .arg(&model_path)
@@ -170,6 +189,7 @@ impl LlmEngine {
                 "-c",
                 &context.to_string(),
             ])
+            .args(["--api-key", &api_key])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -192,6 +212,7 @@ impl LlmEngine {
                 let _ = old.kill().await;
             }
             inner.child = Some(cmd.spawn().map_err(|e| e.to_string())?);
+            inner.api_key = Some(api_key);
             inner.state = EngineState::Loading {
                 model: model_name.clone(),
                 backend,
@@ -240,6 +261,7 @@ impl LlmEngine {
                                 model: model_name,
                                 backend,
                                 port,
+                                context,
                             },
                         )
                         .await;

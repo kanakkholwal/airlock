@@ -1,9 +1,13 @@
 <script lang="ts">
+  import PageScroll from "#lib/components/app/page-scroll.svelte";
   import { onMount } from "svelte";
   import type { OverlayStyle, ShortcutActivation } from "../../bindings";
+  import { inTauri } from "#lib/env.js";
   import PageHeader from "#lib/components/app/page-header.svelte";
+  import SettingsSkeleton from "#lib/components/app/settings-skeleton.svelte";
   import SettingRow from "#lib/components/app/setting-row.svelte";
   import SettingsGroup from "#lib/components/app/settings-group.svelte";
+  import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
   import { Select, SelectContent, SelectItem, SelectTrigger } from "#lib/components/ui/select/index.js";
   import { ShortcutRecorder } from "#lib/components/ui/shortcut-recorder/index.js";
   import { Switch } from "#lib/components/ui/switch/index.js";
@@ -23,14 +27,23 @@
   onMount(() => dictation.load());
 </script>
 
+<PageScroll>
 <main class="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-8 px-6 py-16">
   <PageHeader title="Dictation" description="Hold a key, speak, and the text lands where you were typing." />
 
-  {#if dictation.error}
-    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive-strong" role="alert">
-      {dictation.error}
-    </p>
+  {#if !inTauri()}
+    <Alert variant="info">
+      <AlertDescription>This is a browser preview, so dictation settings are not saved. Open the desktop app to change them.</AlertDescription>
+    </Alert>
   {/if}
+
+  {#if dictation.error}
+    <Alert variant="destructive"><AlertDescription>{dictation.error}</AlertDescription></Alert>
+  {/if}
+
+  {#if !dictation.loaded && inTauri() && !dictation.error}
+    <SettingsSkeleton groups={2} rows={2} />
+  {:else}
 
   <SettingsGroup title="Shortcut">
     <SettingRow title="Dictation shortcut" description="Works in any app.">
@@ -82,4 +95,6 @@
       />
     </SettingRow>
   </SettingsGroup>
+{/if}
 </main>
+</PageScroll>

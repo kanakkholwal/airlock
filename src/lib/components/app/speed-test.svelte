@@ -51,8 +51,9 @@
 <DropdownMenu>
   <DropdownMenuTrigger>
     {#snippet child({ props })}
-      <Button {...props} variant="ghost" size="sm" aria-label="Speed test">
-        <SpeedometerLowIcon size={18} />
+      <Button {...props} variant="ghost" size="sm" class="gap-1.5 text-muted-foreground">
+        <SpeedometerLowIcon size={16} />
+        <span>Speed test</span>
       </Button>
     {/snippet}
   </DropdownMenuTrigger>

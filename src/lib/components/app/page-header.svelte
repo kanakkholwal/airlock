@@ -3,7 +3,7 @@
 </script>
 
 <header class="text-center">
-  <h1 class="text-3xl font-semibold tracking-tight text-balance">{title}</h1>
+  <h1 class="text-3xl text-balance">{title}</h1>
   {#if description}
     <p class="mt-2 text-muted-foreground text-pretty">{description}</p>
   {/if}

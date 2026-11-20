@@ -55,6 +55,15 @@ pub fn chat_append_message(
 
 #[tauri::command]
 #[specta::specta]
+pub fn chat_delete_last_message(db: State<'_, ChatDb>, conversation_id: i64) -> Result<(), String> {
+    db.0.lock()
+        .unwrap()
+        .delete_last_message(conversation_id)
+        .map_err(err)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn chat_rename_conversation(
     db: State<'_, ChatDb>,
     id: i64,

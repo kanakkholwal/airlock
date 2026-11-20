@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:is(.dark *));
@@ -393,6 +393,230 @@
 			scale: 0.96 1;
 		}
 	}
+	@keyframes stream-caret {
+		50% {
+			opacity: 0;
+		}
+	}
+	@keyframes speak-bar {
+		50% {
+			transform: scaleY(1);
+		}
+	}
+	@keyframes card-fade-up {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+	}
+	@keyframes text-transition-enter {
+		from {
+			opacity: var(--tt-from-opacity, 0);
+			transform: translate(var(--tt-from-x, 0px), var(--tt-from-y, 0px)) rotate(var(--tt-from-rotate, 0deg)) scale(var(--tt-from-scale, 1));
+			filter: blur(var(--tt-from-blur, 0px));
+		}
+	}
+	@keyframes reasoning-step-in {
+		from {
+			grid-template-rows: 0fr;
+			opacity: 0;
+		}
+	}
+	@keyframes rolling-digits-in {
+		0% {
+			opacity: 0;
+			transform: translateY(var(--rd-from)) scale(0.84);
+		}
+		5% {
+			opacity: 0.258;
+			transform: translateY(calc(var(--rd-from) * 0.742)) scale(0.881);
+		}
+		10% {
+			opacity: 0.739;
+			transform: translateY(calc(var(--rd-from) * 0.261)) scale(0.958);
+		}
+		15% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.118)) scale(1.019);
+		}
+		20% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.267)) scale(1.043);
+		}
+		25% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.225)) scale(1.036);
+		}
+		30% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.098)) scale(1.016);
+		}
+		35% {
+			opacity: 0.985;
+			transform: translateY(calc(var(--rd-from) * 0.015)) scale(0.998);
+		}
+		40% {
+			opacity: 0.931;
+			transform: translateY(calc(var(--rd-from) * 0.069)) scale(0.989);
+		}
+		45% {
+			opacity: 0.934;
+			transform: translateY(calc(var(--rd-from) * 0.066)) scale(0.989);
+		}
+		50% {
+			opacity: 0.966;
+			transform: translateY(calc(var(--rd-from) * 0.034)) scale(0.995);
+		}
+		55% {
+			opacity: 0.999;
+			transform: translateY(calc(var(--rd-from) * 0.001)) scale(1);
+		}
+		60% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.017)) scale(1.003);
+		}
+		65% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.019)) scale(1.003);
+		}
+		70% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.011)) scale(1.002);
+		}
+		75% {
+			opacity: 1;
+			transform: translateY(calc(var(--rd-from) * -0.002)) scale(1);
+		}
+		80% {
+			opacity: 0.996;
+			transform: translateY(calc(var(--rd-from) * 0.004)) scale(0.999);
+		}
+		85% {
+			opacity: 0.995;
+			transform: translateY(calc(var(--rd-from) * 0.005)) scale(0.999);
+		}
+		90% {
+			opacity: 0.996;
+			transform: translateY(calc(var(--rd-from) * 0.004)) scale(0.999);
+		}
+		95% {
+			opacity: 0.999;
+			transform: translateY(calc(var(--rd-from) * 0.001)) scale(1);
+		}
+	}
+	@keyframes rolling-digits-out {
+		5% {
+			opacity: 0.883;
+			transform: translateY(calc(var(--rd-to) * 0.117)) scale(0.981);
+		}
+		10% {
+			opacity: 0.634;
+			transform: translateY(calc(var(--rd-to) * 0.366)) scale(0.941);
+		}
+		15% {
+			opacity: 0.368;
+			transform: translateY(calc(var(--rd-to) * 0.632)) scale(0.899);
+		}
+		20% {
+			opacity: 0.146;
+			transform: translateY(calc(var(--rd-to) * 0.854)) scale(0.863);
+		}
+		25% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.003)) scale(0.839);
+		}
+		30% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.084)) scale(0.827);
+		}
+		35% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.109)) scale(0.823);
+		}
+		40% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.1)) scale(0.824);
+		}
+		45% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.074)) scale(0.828);
+		}
+		50% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.045)) scale(0.833);
+		}
+		55% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.019)) scale(0.837);
+		}
+		60% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1.002)) scale(0.84);
+		}
+		65% {
+			opacity: 0.008;
+			transform: translateY(calc(var(--rd-to) * 0.992)) scale(0.841);
+		}
+		70% {
+			opacity: 0.012;
+			transform: translateY(calc(var(--rd-to) * 0.988)) scale(0.842);
+		}
+		75% {
+			opacity: 0.011;
+			transform: translateY(calc(var(--rd-to) * 0.989)) scale(0.842);
+		}
+		80% {
+			opacity: 0.009;
+			transform: translateY(calc(var(--rd-to) * 0.991)) scale(0.841);
+		}
+		85% {
+			opacity: 0.005;
+			transform: translateY(calc(var(--rd-to) * 0.995)) scale(0.841);
+		}
+		90% {
+			opacity: 0.003;
+			transform: translateY(calc(var(--rd-to) * 0.997)) scale(0.84);
+		}
+		95% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1)) scale(0.84);
+		}
+		100% {
+			opacity: 0;
+			transform: translateY(calc(var(--rd-to) * 1)) scale(0.84);
+		}
+	}
+	@keyframes rolling-digits-cell {
+		from {
+			opacity: 0;
+			grid-template-columns: 0fr;
+		}
+	}
+	@keyframes rolling-digits-cell-close {
+		to {
+			opacity: 0;
+			grid-template-columns: 0fr;
+		}
+	}
+	@keyframes text-fade-out {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
+	}
+	@keyframes alert-in {
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+	}
+	@keyframes skeleton-shimmer {
+		to {
+			background-position: -200% 0;
+		}
+	}
 }
 
 @layer base {
@@ -452,6 +676,22 @@
 			transition: none;
 		}
 		.progress-gloss, .progress-spin {
+			animation: none;
+		}
+		.speak-bar {
+			transform: scaleY(0.7);
+			animation: none;
+		}
+		.reasoning-step-in {
+			animation-name: fade-in;
+		}
+		.rolling-digits-in, .rolling-digits-cell-in {
+			animation: fade-in 160ms var(--ease-ui-out) both;
+		}
+		.rolling-digits-out, .rolling-digits-cell-out {
+			animation: text-fade-out var(--duration-exit) var(--ease-ui-out) both;
+		}
+		.skeleton-shimmer, .progress-sweep, .alert-in {
 			animation: none;
 		}
 	}
@@ -538,11 +778,155 @@
 	.progress-spin {
 		animation: spinner 1.15s linear infinite;
 	}
+	.stream-caret {
+		animation: stream-caret 1s steps(2) infinite;
+	}
+	.speak-bar {
+		height: 100%;
+		transform: scaleY(0.4);
+		transform-origin: bottom;
+		animation: speak-bar 900ms ease-in-out infinite;
+	}
+	.speak-bar:nth-child(2) {
+		animation-delay: -300ms;
+	}
+	.speak-bar:nth-child(3) {
+		animation-delay: -600ms;
+	}
+	.card-fade-up {
+		animation: card-fade-up var(--duration-overlay) var(--ease-ui-out) both;
+	}
+	.text-transition-unit {
+		animation: text-transition-enter var(--tt-duration, 400ms) var(--tt-ease, var(--ease-ui-out)) var(--tt-delay, 0ms) both;
+	}
+	.reasoning-step-in {
+		animation: reasoning-step-in var(--duration-overlay) var(--ease-ui-out) both;
+	}
+	.rolling-digits-in {
+		animation: rolling-digits-in 1239ms linear both;
+	}
+	.rolling-digits-out {
+		animation: rolling-digits-out 822ms linear both;
+	}
+	.rolling-digits-cell-in {
+		animation: rolling-digits-cell var(--duration-overlay) var(--ease-ui-out) both;
+	}
+	.rolling-digits-cell-out {
+		animation: rolling-digits-cell-close var(--duration-overlay) var(--ease-ui-out) both;
+	}
+	.alert-in {
+		animation: alert-in 200ms var(--ease-ui-out);
+	}
+	.skeleton-shimmer {
+		background-image: linear-gradient( 90deg, transparent 0%, color-mix(in oklch, var(--foreground) 7%, transparent) 50%, transparent 100% );
+		background-size: 200% 100%;
+		animation: skeleton-shimmer 2s linear infinite;
+	}
 }
 
-/* Decision (product): Plus Jakarta Sans for UI and headings, JetBrains Mono for code. */
+/* The app fills the window; only inner panes scroll, so the page never rubber-bands. */
+html,
+body {
+	height: 100%;
+	overflow: hidden;
+	overscroll-behavior: none;
+}
+
+/* Decision (product): Satoshi for headings, Inter for UI, JetBrains Mono for code. Mirrors Recast
+   (apps/desktop/src/app.css). Satoshi woff2 files live in static/fonts. */
+@font-face {
+	font-family: "Satoshi";
+	src: url("/fonts/Satoshi-400.woff2") format("woff2");
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Satoshi";
+	src: url("/fonts/Satoshi-500.woff2") format("woff2");
+	font-weight: 500;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Satoshi";
+	src: url("/fonts/Satoshi-700.woff2") format("woff2");
+	font-weight: 700;
+	font-display: swap;
+}
+
 :root {
-	--font-heading: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
-	--font-body: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-heading: "Satoshi", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-body: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 	--font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
+	--segment: oklch(100% 0 0);
+	--border-strong: oklch(16% 0.002 265 / 0.14);
+	--destructive-strong: color-mix(in oklab, var(--destructive) 64%, var(--foreground));
+	--success: oklch(73.29% 0.1935 150.81);
+	--success-strong: color-mix(in oklab, var(--success) 57%, var(--foreground));
+	--success-foreground: oklch(21.03% 0.0059 285.89);
+	--warning: oklch(78.19% 0.1585 72.33);
+	--warning-strong: color-mix(in oklab, var(--warning) 53%, var(--foreground));
+	--warning-foreground: oklch(21.03% 0.0059 285.89);
+	--info: oklch(56% 0.195 253.83);
+	--info-strong: color-mix(in oklab, var(--info) 70%, var(--foreground));
+	--info-foreground: oklch(99.11% 0 0);
+	--surface-shadow: 0 2px 4px 0 rgb(0 0 0 / 0.04), 0 1px 2px 0 rgb(0 0 0 / 0.06);
+	--overlay-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06), 0 -6px 12px 0 rgb(0 0 0 / 0.03), 0 14px 28px 0 rgb(0 0 0 / 0.08);
+	--field-shadow: none;
+	--thumb-shadow: 0 0 5px 0 rgb(0 0 0 / 0.02), 0 2px 10px 0 rgb(0 0 0 / 0.06), 0 0 1px 0 rgb(0 0 0 / 0.3);
+	--field: oklch(100% 0 0);
+	--track: oklch(16% 0.002 265 / 0.15);
+	--primary-hover: color-mix(in oklab, var(--primary) 90%, var(--foreground));
+	--ease-ui-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-ui-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+	--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+	--ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+	--ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	--ease-smooth: ease;
+	--ease-spring-snappy: linear( 0, 0.049, 0.158, 0.285, 0.412, 0.526, 0.624, 0.706, 0.772, 0.825, 0.867, 0.899, 0.924, 0.943, 0.957, 0.968, 0.976, 0.983, 0.987, 0.991, 0.993, 0.995, 0.996, 0.997, 1 );
+	--ease-spring-bouncy: linear( 0, 0.044, 0.149, 0.283, 0.424, 0.558, 0.676, 0.776, 0.856, 0.916, 0.961, 0.992, 1.011, 1.022, 1.027, 1.028, 1.027, 1.023, 1.019, 1.015, 1.012, 1.008, 1.006, 1.004, 1 );
+	--duration-spring-snappy: 400ms;
+	--duration-spring-bouncy: 600ms;
+	--duration-instant: 100ms;
+	--duration-fast: 150ms;
+	--duration-base: 200ms;
+	--duration-slow: 250ms;
+	--duration-press: var(--duration-fast);
+	--duration-tooltip: var(--duration-fast);
+	--duration-dropdown: var(--duration-fast);
+	--duration-backdrop: var(--duration-fast);
+	--duration-collapse: var(--duration-base);
+	--duration-overlay: var(--duration-slow);
+	--duration-drawer: 500ms;
+	--duration-exit: var(--duration-instant);
+	--duration-panel-exit: var(--duration-base);
+	--stagger-step: 45ms;
+	--press-scale: 0.98;
+	--press-scale-sm: 0.97;
+	--press-scale-lg: 0.985;
+	--press-scale-icon: 0.96;
+	--press-scale-row: 0.985;
+	--hover-scale: 1.02;
+	--enter-scale: 0.95;
+	--enter-lift: 8px;
+	--popover-enter-scale: 0.97;
+	--popover-exit-scale: 0.98;
+	--modal-enter-scale: 1.02;
+}
+
+@layer base {
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-heading);
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+	h1,
+	h2 {
+		font-weight: 700;
+	}
 }

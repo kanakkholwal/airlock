@@ -672,6 +672,14 @@ async chatAppendMessage(conversationId: number, role: Role, parts: Part[]) : Pro
     else return { status: "error", error: e  as any };
 }
 },
+async chatDeleteLastMessage(conversationId: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("chat_delete_last_message", { conversationId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async chatRenameConversation(id: number, title: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("chat_rename_conversation", { id, title }) };
@@ -699,6 +707,49 @@ async llmStatus() : Promise<Result<EngineState, string>> {
 async llmStartModel(id: string, backend: Backend) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("llm_start_model", { id, backend }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async llmStoragePaths() : Promise<Result<StoragePaths, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_storage_paths") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * `None` resets that folder to its default.
+ */
+async llmSetStoragePaths(modelsDir: string | null, enginesDir: string | null, changeModels: boolean, changeEngines: boolean) : Promise<Result<StoragePaths, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_set_storage_paths", { modelsDir, enginesDir, changeModels, changeEngines }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async llmEngines() : Promise<Result<EngineStatus[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_engines") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async llmInstallEngine(backend: Backend, onEvent: TAURI_CHANNEL<DownloadEvent>) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_install_engine", { backend, onEvent }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async llmRemoveEngine(backend: Backend) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_remove_engine", { backend }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -758,10 +809,6 @@ async llmStop() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-/**
- * Streams one reply as typed events. Provenance: Handy llm_client.rs (OpenAI-compatible
- * client); reasoning deltas map to the `reasoning` part type.
- */
 async chatStream(messages: WireMessage[], onEvent: TAURI_CHANNEL<ChatEvent>) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("chat_stream", { messages, onEvent }) };
@@ -774,8 +821,32 @@ async chatCancel() : Promise<void> {
     await TAURI_INVOKE("chat_cancel");
 },
 /**
- * Measures generation speed on the loaded model; the dictation and combined targets
- * are measured on the transcription side and wired up separately.
+ * Writes a short title for a conversation from its first exchange. Runs as a queued background
+ * call after the first reply, so it never competes with the reply being written.
+ */
+async chatTitle(firstUser: string, firstReply: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("chat_title", { firstUser, firstReply }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Copies a user-chosen image into the app's attachments folder under a content hash, so the
+ * chat keeps working if the original moves and chat can only ever read files stored here.
+ */
+async chatAttachImage(path: string) : Promise<Result<AttachedImage, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("chat_attach_image", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Measures generation speed on the loaded model, streaming like real chat and discarding the
+ * text. The dictation and combined targets are measured on the transcription side.
  */
 async speedTestChat() : Promise<Result<SpeedResult[], string>> {
     try {
@@ -1331,6 +1402,11 @@ language_detection_window_secs?: number;
  * `overlay_position` (position `none` → style `None`).
  */
 overlay_style?: OverlayStyle }
+export type AttachedImage = { 
+/**
+ * Absolute path of the stored copy inside the app data folder.
+ */
+path: string; name: string; size_bytes: number }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AutoUnavailableReason = 
@@ -1351,9 +1427,9 @@ export type AvailableAccelerators = { transcribe: string[]; gpu_devices: GpuDevi
  * Which official llama.cpp build to run. Decision (architecture): Vulkan is the default on
  * Windows/Linux, CUDA is an opt-in download, CPU is the fallback; macOS builds use Metal.
  */
-export type Backend = "auto" | "vulkan" | "cuda" | "cpu"
+export type Backend = "auto" | "vulkan" | "cuda" | "metal" | "cpu"
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
-export type ChatEvent = { type: "text"; delta: string } | { type: "reasoning"; delta: string } | { type: "done"; tokens_per_second: number | null } | { type: "error"; message: string }
+export type ChatEvent = { type: "text"; delta: string } | { type: "reasoning"; delta: string } | { type: "done"; tokens_per_second: number | null; prompt_tokens: number | null; completion_tokens: number | null } | { type: "error"; message: string }
 /**
  * Script applied to Mandarin and Cantonese output. Traditional carries its region
  * (Taiwan vs Hong Kong forms, e.g. 裡/裏) rather than guessing it.
@@ -1375,7 +1451,8 @@ export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type Conversation = { id: number; title: string; model: string | null; updated_at: number }
 export type CustomSounds = { start: boolean; stop: boolean }
 export type DownloadEvent = { type: "progress"; downloaded: number; total: number; bytes_per_second: number } | { type: "verifying" } | { type: "done" } | { type: "cancelled" } | { type: "error"; message: string }
-export type EngineState = { state: "stopped" } | { state: "loading"; model: string; backend: Backend } | { state: "ready"; model: string; backend: Backend; port: number } | { state: "failed"; reason: string }
+export type EngineState = { state: "stopped" } | { state: "loading"; model: string; backend: Backend } | { state: "ready"; model: string; backend: Backend; port: number; context: number } | { state: "failed"; reason: string }
+export type EngineStatus = { backend: Backend; label: string; size_bytes: number; installed: boolean; recommended: boolean }
 export type FileState = { state: "not_downloaded" } | { state: "partial"; downloaded: number } | { state: "downloaded" }
 export type GpuDeviceOption = { id: string; name: string; total_vram_mb: number }
 export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean; 
@@ -1487,7 +1564,7 @@ export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null
  */
 export type ModelSource = 
 /**
- * Direct HTTP download from a URL (current blob.handy.computer hosting).
+ * Direct HTTP download from a URL (the current model hosting).
  */
 { Url: { url: string; 
 /**
@@ -1652,6 +1729,7 @@ export type ShortcutActivation =
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
 export type SoundTheme = "marimba" | "pop" | "custom"
 export type SpeedResult = { target: string; backend: string; value: number; unit: string }
+export type StoragePaths = { models_dir: string; engines_dir: string; default_models_dir: string; default_engines_dir: string; models_custom: boolean; engines_custom: boolean }
 /**
  * Phase of the streaming overlay card, emitted to drive its UI state.
  */
@@ -1734,7 +1812,11 @@ export type TranscriptionOutcome =
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 export type VadBackend = "silero" | "earshot"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
-export type WireMessage = { role: string; content: string }
+export type WireMessage = { role: string; content: string; 
+/**
+ * Stored attachment paths (see `chat_attach_image`); only user messages carry images.
+ */
+images?: string[] }
 
 /** tauri-specta globals **/
 

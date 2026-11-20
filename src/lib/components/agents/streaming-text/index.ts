@@ -1,0 +1,14 @@
+export { default as StreamingText } from "./streaming-text.svelte";
+export { default as StreamingTextContent } from "./streaming-text-content.svelte";
+export { default as StreamingTextCopy } from "./streaming-text-copy.svelte";
+export { default as StreamingTextFollowUps } from "./streaming-text-follow-ups.svelte";
+export { default as StreamingTextFooter } from "./streaming-text-footer.svelte";
+export { default as StreamingTextSources } from "./streaming-text-sources.svelte";
+export { type StreamingTextState, setStreamingText, streamingTextState } from "./context";
+export { streamingText, type StreamingTextSize, type StreamingTextLayout, type StreamingToken, type StreamingSource, WORD_DELAY, tokensOf, plainTextOf } from "./variants";
+export { default as Root } from "./streaming-text.svelte";
+export { default as Content } from "./streaming-text-content.svelte";
+export { default as Copy } from "./streaming-text-copy.svelte";
+export { default as FollowUps } from "./streaming-text-follow-ups.svelte";
+export { default as Footer } from "./streaming-text-footer.svelte";
+export { default as Sources } from "./streaming-text-sources.svelte";

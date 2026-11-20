@@ -128,6 +128,11 @@ fn imported_models(dir: &Path) -> Vec<ModelStatus> {
 /// Resolves a model id to its weights file and optional projector, if fully on disk.
 pub fn resolve(dir: &Path, id: &str) -> Option<(PathBuf, Option<PathBuf>, u32)> {
     if let Some(name) = id.strip_prefix(IMPORT_PREFIX) {
+        // Decision (security): an imported id is a bare file name; anything with a separator or
+        // `..` could point outside the models folder.
+        if Path::new(name).file_name() != Some(std::ffi::OsStr::new(name)) {
+            return None;
+        }
         let path = dir.join("imported").join(name);
         return path.exists().then_some((path, None, 4096));
     }
@@ -295,6 +300,28 @@ pub fn llm_memory_check(app: AppHandle, id: String) -> Result<MemoryCheck, Strin
         free_bytes: free,
         fits: required <= free,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn imported_ids_cannot_escape_the_models_folder() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("secret.gguf"), b"").unwrap();
+        assert!(resolve(tmp.path(), "import:../secret.gguf").is_none());
+        assert!(resolve(tmp.path(), r"import:..\secret.gguf").is_none());
+        assert!(resolve(tmp.path(), "import:/etc/passwd").is_none());
+    }
+
+    #[test]
+    fn imported_id_resolves_a_plain_file_name() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir(tmp.path().join("imported")).unwrap();
+        std::fs::write(tmp.path().join("imported").join("a.gguf"), b"").unwrap();
+        assert!(resolve(tmp.path(), "import:a.gguf").is_some());
+    }
 }
 
 pub fn manage(app: &AppHandle) {

@@ -1,14 +1,43 @@
 <script lang="ts">
+  import PageScroll from "#lib/components/app/page-scroll.svelte";
   import { open as pickFile } from "@tauri-apps/plugin-dialog";
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import type { MemoryCheck, ModelStatus } from "../../bindings";
+  import type { Backend, MemoryCheck, ModelStatus } from "../../bindings";
+  import { CpuBoltIcon, DangerTriangleIcon, MonitorIcon } from "@solar-icons/svelte/linear";
+  import { inTauri } from "#lib/env.js";
+  import CardSkeleton from "#lib/components/app/card-skeleton.svelte";
   import PageHeader from "#lib/components/app/page-header.svelte";
+  import StateView from "#lib/components/app/state-view.svelte";
   import { llm } from "#lib/llm.svelte.js";
+  import { rateSpeed, speedLabel, type SpeedRating } from "#lib/speed.js";
+  import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Progress } from "#lib/components/ui/progress/index.js";
 
   let memory = $state<Record<string, MemoryCheck | null>>({});
+  // Which delete or remove is waiting for a second click (multi-GB files are not recoverable).
+  let confirming = $state<string | null>(null);
+  let speed = $state<Record<string, { value: number; rating: SpeedRating } | "running" | "failed">>({});
+
+  async function testSpeed(id: string) {
+    const run = llm.speedRunner;
+    if (!run) return;
+    speed[id] = "running";
+    try {
+      const [r] = await run("chat");
+      speed[id] = { value: r.value, rating: rateSpeed(r.value) };
+    } catch {
+      speed[id] = "failed";
+    }
+  }
+
+  const tone: Record<SpeedRating, "success" | "info" | "warning" | "destructive"> = {
+    excellent: "success",
+    decent: "info",
+    usable: "warning",
+    slow: "destructive",
+  };
 
   const mb = (b: number) => `${Math.round(b / 1_048_576)} MB`;
   const gb = (b: number) => `${(b / 1_073_741_824).toFixed(1)} GB`;
@@ -26,19 +55,103 @@
     await llm.start(m.id);
   }
 
+  const noEngine = $derived(llm.engines.length > 0 && !llm.engines.some((e) => e.installed));
+
   async function importModel() {
     const path = await pickFile({ filters: [{ name: "GGUF model", extensions: ["gguf"] }] });
     if (typeof path === "string") await llm.importFile(path);
   }
 </script>
 
+<PageScroll>
 <main class="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-8 px-6 py-16">
   <PageHeader title="Models" description="Weights download on your request and run on this machine." />
 
   {#if llm.error}
-    <p class="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive-strong" role="alert">{llm.error}</p>
+    <Alert variant="destructive" dismissible><AlertDescription>{llm.error}</AlertDescription></Alert>
   {/if}
 
+  {#if !inTauri()}
+    <StateView
+      icon={MonitorIcon}
+      title="Open the Airlock app to manage models"
+      description="This is a browser preview. Engines and models are downloaded and run by the desktop app."
+      variant="card"
+    />
+  {/if}
+
+  {#if llm.engine.state === "failed"}
+    <Alert variant="destructive">
+      <AlertDescription>
+        The engine stopped: {llm.engine.reason} Pick a model below to try again, or choose a different engine.
+      </AlertDescription>
+    </Alert>
+  {/if}
+
+  <section class="flex flex-col gap-2">
+    <h2 class="px-1 text-sm font-medium text-muted-foreground">Engine</h2>
+    {#if !llm.loaded && inTauri()}
+      <CardSkeleton count={2} />
+    {:else if llm.loaded && inTauri() && llm.engines.length === 0}
+      <StateView
+        icon={CpuBoltIcon}
+        tone="warning"
+        title="No engine for this system"
+        description="Airlock does not ship an engine build for this operating system and processor yet."
+        variant="card"
+      />
+    {/if}
+    {#if noEngine}
+      <p class="px-1 text-sm text-muted-foreground text-pretty">
+        An engine runs the models on your hardware. Install one to load a model.
+      </p>
+    {/if}
+    <ul class="flex flex-col gap-2">
+      {#each llm.engines as e (e.backend)}
+        {@const dl = llm.downloads[`engine:${e.backend}`]}
+        <li class="flex flex-col gap-3 rounded-2xl bg-card p-4">
+          <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium">{e.label}</span>
+                {#if e.recommended}<Badge size="sm">Recommended</Badge>{/if}
+                {#if e.installed}<Badge size="sm" variant="success">Installed</Badge>{/if}
+              </div>
+              <p class="mt-1 text-sm text-muted-foreground">{mb(e.size_bytes)}</p>
+            </div>
+            <div class="flex shrink-0 gap-2">
+              {#if dl}
+                <Button size="sm" variant="secondary" onclick={() => llm.cancelEngineInstall(e.backend as Backend)}>Cancel</Button>
+              {:else if e.installed}
+                {#if confirming === `engine:${e.backend}`}
+                  <Button size="sm" variant="destructive" onclick={() => { confirming = null; void llm.removeEngine(e.backend as Backend); }}>
+                    Remove {mb(e.size_bytes)}
+                  </Button>
+                  <Button size="sm" variant="ghost" onclick={() => (confirming = null)}>Keep</Button>
+                {:else}
+                  <Button size="sm" variant="ghost" onclick={() => (confirming = `engine:${e.backend}`)}>Remove</Button>
+                {/if}
+              {:else}
+                <Button size="sm" variant={e.recommended ? "default" : "secondary"} onclick={() => llm.installEngine(e.backend as Backend)}>Install</Button>
+              {/if}
+            </div>
+          </div>
+          {#if dl}
+            <Progress
+              value={dl.total > 0 ? (dl.downloaded / dl.total) * 100 : 0}
+              indeterminate={dl.total === 0 || dl.phase === "verifying"}
+              helper={dl.phase === "verifying"
+                ? "Verifying"
+                : `${mb(dl.downloaded)} of ${mb(dl.total)} · ${(dl.bytesPerSecond / 1_048_576).toFixed(1)} MB/s`}
+            />
+          {/if}
+        </li>
+      {/each}
+    </ul>
+  </section>
+
+  <section class="flex flex-col gap-2">
+    <h2 class="px-1 text-sm font-medium text-muted-foreground">Models</h2>
   <ul class="flex flex-col gap-3">
     {#each llm.models as m (m.id)}
       {@const dl = llm.downloads[m.id]}
@@ -70,13 +183,31 @@
               <Button size="sm" variant="secondary" onclick={() => llm.cancelDownload(m.id)}>Cancel</Button>
             {:else if m.file.state === "downloaded"}
               {#if loaded(m)}
+                {#if llm.engine.state === "ready"}
+                  {@const s = speed[m.id]}
+                  {#if s && s !== "running" && s !== "failed"}
+                    <Badge variant={tone[s.rating]}>{s.value.toFixed(0)} tok/s · {speedLabel[s.rating]}</Badge>
+                  {:else if s === "failed"}
+                    <Badge variant="destructive">Test failed</Badge>
+                  {/if}
+                  <Button size="sm" variant="ghost" disabled={s === "running"} onclick={() => testSpeed(m.id)}>
+                    {s === "running" ? "Testing" : "Test speed"}
+                  </Button>
+                {/if}
                 <Button size="sm" variant="secondary" onclick={() => llm.stop()}>Unload</Button>
               {:else}
-                <Button size="sm" onclick={() => load(m)}>Load</Button>
+                <Button size="sm" variant={llm.current ? "secondary" : m.recommended ? "default" : "secondary"} onclick={() => load(m)}>Load</Button>
               {/if}
-              <Button size="sm" variant="ghost" onclick={() => llm.remove(m.id)}>Delete</Button>
+              {#if confirming === m.id}
+                <Button size="sm" variant="destructive" onclick={() => { confirming = null; void llm.remove(m.id); }}>
+                  Delete {gb(m.size_bytes)}
+                </Button>
+                <Button size="sm" variant="ghost" onclick={() => (confirming = null)}>Keep</Button>
+              {:else}
+                <Button size="sm" variant="ghost" onclick={() => (confirming = m.id)}>Delete</Button>
+              {/if}
             {:else}
-              <Button size="sm" onclick={() => llm.download(m.id)}>
+              <Button size="sm" variant={m.recommended ? "default" : "secondary"} onclick={() => llm.download(m.id)}>
                 {m.file.state === "partial" ? "Resume" : "Download"}
               </Button>
             {/if}
@@ -96,19 +227,39 @@
         {/if}
 
         {#if check && !check.fits}
-          <p class="text-sm text-destructive-strong" role="alert">
-            Needs {gb(check.required_bytes)}, {gb(check.free_bytes)} free. Close other apps or pick a smaller model.
-          </p>
+          <Alert variant="warning">
+            <AlertDescription>
+              Needs {gb(check.required_bytes)} of memory, {gb(check.free_bytes)} free. Close other apps or pick a smaller model.
+            </AlertDescription>
+          </Alert>
         {/if}
-      </li>
-    {:else}
-      <li class="rounded-2xl bg-card p-4 text-sm text-muted-foreground">
-        The catalog loads once the app is running.
       </li>
     {/each}
   </ul>
+  {#if !llm.loaded && inTauri()}
+    <CardSkeleton count={2} />
+  {:else if llm.loaded && llm.models.length === 0}
+    <StateView
+      icon={DangerTriangleIcon}
+      tone="warning"
+      title="The model list did not load"
+      description="Airlock could not read its catalog. Reload the screen, or import a .gguf file below."
+      variant="card"
+    >
+      {#snippet actions()}
+        <Button variant="secondary" onclick={() => llm.refresh()}>Try again</Button>
+      {/snippet}
+    </StateView>
+  {/if}
+
+  </section>
 
   <div>
     <Button variant="secondary" onclick={importModel}>Import a .gguf file</Button>
   </div>
+
+  <p class="px-1 text-sm text-muted-foreground text-pretty">
+    Where files are stored is in <a class="underline underline-offset-2" href="/settings">Settings</a>.
+  </p>
 </main>
+</PageScroll>

@@ -655,6 +655,39 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
     0
 }
 
+/// Registers single-instance. Decision (architecture): it must be the FIRST plugin, because its
+/// handler runs inside the second-launched process and any earlier plugin (log, dialog) would
+/// already have initialized there. Skipped in debug builds so a dev run is never swallowed by an
+/// installed or stale instance, and in headless mode so --transcribe-file runs standalone.
+/// Provenance: Recast apps/desktop/src-tauri/src/lib.rs install_singleton_plugin.
+fn install_single_instance(
+    builder: tauri::Builder<tauri::Wry>,
+    headless_mode: bool,
+) -> tauri::Builder<tauri::Wry> {
+    if headless_mode || cfg!(debug_assertions) {
+        return builder;
+    }
+    builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if args.iter().any(|a| a == "--toggle-transcription") {
+            signal_handle::send_transcription_input(app, "transcribe", "CLI");
+        } else if args.iter().any(|a| a == "--toggle-post-process") {
+            signal_handle::send_transcription_input(app, "transcribe_with_post_process", "CLI");
+        } else if args.iter().any(|a| a == "--cancel") {
+            crate::utils::cancel_current_operation(app);
+        } else {
+            // A second process was launched without remote-control flags
+            // (e.g. the binary run from a shell). On macOS, relaunching the
+            // bundle from Spotlight/Finder/Dock does not start a process —
+            // it arrives as RunEvent::Reopen below — but treat this the
+            // same way: raise the window and recreate a possibly vanished
+            // tray icon (#1948).
+            #[cfg(target_os = "macos")]
+            tray::recreate_tray_icon(app);
+            show_main_window(app);
+        }
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(cli_args: CliArgs) {
     // Avoid ggml-metal residency-set teardown assertions when a native engine
@@ -768,6 +801,7 @@ pub fn run(cli_args: CliArgs) {
             chat::commands::chat_create_conversation,
             chat::commands::chat_load_messages,
             chat::commands::chat_append_message,
+            chat::commands::chat_delete_last_message,
             chat::commands::chat_rename_conversation,
             chat::commands::chat_delete_conversation,
             llm::commands::llm_status,
@@ -786,6 +820,8 @@ pub fn run(cli_args: CliArgs) {
             llm::commands::llm_stop,
             llm::commands::chat_stream,
             llm::commands::chat_cancel,
+            llm::commands::chat_title,
+            llm::attachments::chat_attach_image,
             llm::commands::speed_test_chat,
             commands::check_apple_intelligence_available,
             commands::initialize_enigo,
@@ -869,87 +905,62 @@ pub fn run(cli_args: CliArgs) {
         cli_args.transcribe_file.is_some() || cli_args.list_devices || cli_args.list_models;
 
     #[allow(unused_mut)]
-    let mut builder = tauri::Builder::default()
-        .device_event_filter(tauri::DeviceEventFilter::Always)
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(
-            LogBuilder::new()
-                .level(log::LevelFilter::Trace) // Set to most verbose level globally
-                .max_file_size(500_000)
-                .rotation_strategy(RotationStrategy::KeepOne)
-                .clear_targets()
-                .targets([
-                    // Console output respects RUST_LOG environment variable. In
-                    // headless mode (--transcribe-file/--list-devices/--list-models)
-                    // stdout carries only the result (JSON or plain), so send console
-                    // logs to stderr instead to keep stdout clean for CI parsing.
-                    Target::new(if headless_mode {
-                        TargetKind::Stderr
-                    } else {
-                        TargetKind::Stdout
-                    })
-                    .filter({
-                        let console_filter = console_filter.clone();
-                        move |metadata| console_filter.enabled(metadata)
-                    }),
-                    // File logs respect the user's settings (stored in FILE_LOG_LEVEL atomic)
-                    Target::new(if let Some(data_dir) = portable::data_dir() {
-                        TargetKind::Folder {
-                            path: data_dir.join("logs"),
-                            file_name: Some("airlock".into()),
-                        }
-                    } else {
-                        TargetKind::LogDir {
-                            file_name: Some("airlock".into()),
-                        }
-                    })
-                    .filter(|metadata| {
-                        let file_level = FILE_LOG_LEVEL.load(Ordering::Relaxed);
-                        metadata.level() <= level_filter_from_u8(file_level)
-                    }),
-                    // Stream logs to the webview (via the `log://log` event) so the
-                    // debug panel's live log viewer can show them in real time. Only
-                    // active while debug mode is on (its sole consumer), and shares the
-                    // file log level so the "Log Level" setting controls verbosity.
-                    Target::new(TargetKind::Webview).filter(|metadata| {
-                        WEBVIEW_LOG_STREAMING.load(Ordering::Relaxed)
-                            && metadata.level()
-                                <= level_filter_from_u8(FILE_LOG_LEVEL.load(Ordering::Relaxed))
-                    }),
-                ])
-                .build(),
-        );
+    let mut builder = install_single_instance(
+        tauri::Builder::default().device_event_filter(tauri::DeviceEventFilter::Always),
+        headless_mode,
+    )
+    .plugin(tauri_plugin_dialog::init())
+    .plugin(
+        LogBuilder::new()
+            .level(log::LevelFilter::Trace) // Set to most verbose level globally
+            .max_file_size(500_000)
+            .rotation_strategy(RotationStrategy::KeepOne)
+            .clear_targets()
+            .targets([
+                // Console output respects RUST_LOG environment variable. In
+                // headless mode (--transcribe-file/--list-devices/--list-models)
+                // stdout carries only the result (JSON or plain), so send console
+                // logs to stderr instead to keep stdout clean for CI parsing.
+                Target::new(if headless_mode {
+                    TargetKind::Stderr
+                } else {
+                    TargetKind::Stdout
+                })
+                .filter({
+                    let console_filter = console_filter.clone();
+                    move |metadata| console_filter.enabled(metadata)
+                }),
+                // File logs respect the user's settings (stored in FILE_LOG_LEVEL atomic)
+                Target::new(if let Some(data_dir) = portable::data_dir() {
+                    TargetKind::Folder {
+                        path: data_dir.join("logs"),
+                        file_name: Some("airlock".into()),
+                    }
+                } else {
+                    TargetKind::LogDir {
+                        file_name: Some("airlock".into()),
+                    }
+                })
+                .filter(|metadata| {
+                    let file_level = FILE_LOG_LEVEL.load(Ordering::Relaxed);
+                    metadata.level() <= level_filter_from_u8(file_level)
+                }),
+                // Stream logs to the webview (via the `log://log` event) so the
+                // debug panel's live log viewer can show them in real time. Only
+                // active while debug mode is on (its sole consumer), and shares the
+                // file log level so the "Log Level" setting controls verbosity.
+                Target::new(TargetKind::Webview).filter(|metadata| {
+                    WEBVIEW_LOG_STREAMING.load(Ordering::Relaxed)
+                        && metadata.level()
+                            <= level_filter_from_u8(FILE_LOG_LEVEL.load(Ordering::Relaxed))
+                }),
+            ])
+            .build(),
+    );
 
     #[cfg(target_os = "macos")]
     {
         builder = builder.plugin(tauri_nspanel::init());
-    }
-
-    // Single-instance forwards CLI args to an already-running Handy and exits.
-    // That would make the headless path
-    // (--transcribe-file/--list-devices/--list-models) a silent no-op whenever the
-    // app is already open, so skip it in headless mode and run a standalone
-    // instance instead.
-    if !headless_mode {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            if args.iter().any(|a| a == "--toggle-transcription") {
-                signal_handle::send_transcription_input(app, "transcribe", "CLI");
-            } else if args.iter().any(|a| a == "--toggle-post-process") {
-                signal_handle::send_transcription_input(app, "transcribe_with_post_process", "CLI");
-            } else if args.iter().any(|a| a == "--cancel") {
-                crate::utils::cancel_current_operation(app);
-            } else {
-                // A second process was launched without remote-control flags
-                // (e.g. the binary run from a shell). On macOS, relaunching the
-                // bundle from Spotlight/Finder/Dock does not start a process —
-                // it arrives as RunEvent::Reopen below — but treat this the
-                // same way: raise the window and recreate a possibly vanished
-                // tray icon (#1948).
-                #[cfg(target_os = "macos")]
-                tray::recreate_tray_icon(app);
-                show_main_window(app);
-            }
-        }));
     }
 
     #[allow(unused_mut)]
