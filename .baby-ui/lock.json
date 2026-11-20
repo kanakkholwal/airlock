@@ -908,6 +908,28 @@
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},
+		"https://baby-ui.pages.dev/svelte/r/theme-toggle.json": {
+			"name": "theme-toggle",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T18:25:52.960Z",
+			"itemHash": "fc71396b8d91cbfb4edcc2566cd08c371ae04887d3ec51c25b461a1cc9857b45",
+			"files": {
+				"src/lib/cn.ts": "0fca478853f3fc4310e40ebff727a53da7ec677938f4e3e0d5ecaa62e936a199",
+				"src/lib/components/ui/theme-toggle/index.ts": "d5f417063f8be030c29009edb37da110d72348eab7128017d1855eda45db9a7c",
+				"src/lib/components/ui/theme-toggle/reveal.ts": "f0308d90709693884bcb75bf8d95a8fb843b79ea35e5bf5699970b38e9d3a196",
+				"src/lib/components/ui/theme-toggle/theme-toggle.svelte": "3c4ff46b835b1014123b6489891b2b2c08f5017fb53b40403e8611b8d4ab689c",
+				"src/lib/components/ui/theme-toggle/variants.ts": "ca6a05e0395be8796f87557f42e051497d4bcd1058f956bf434627158674555f"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
 		"https://baby-ui.pages.dev/svelte/r/theme.json": {
 			"name": "theme",
 			"type": "registry:theme",

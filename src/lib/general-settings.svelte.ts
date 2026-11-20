@@ -1,6 +1,6 @@
 import { commands, type Theme } from "../bindings";
 import { inTauri } from "./env";
-import { applyTheme } from "./theme";
+import { applyTheme, syncWindowTheme } from "./theme";
 
 /** App-wide preferences (look, startup, updates). Persisted by the backend settings store. */
 class GeneralSettings {
@@ -26,6 +26,7 @@ class GeneralSettings {
     }
     const s = res.data;
     this.theme = s.theme ?? "system";
+    syncWindowTheme(this.theme);
     this.autostart = s.autostart_enabled ?? false;
     this.startHidden = s.start_hidden ?? false;
     this.showTray = s.show_tray_icon ?? true;

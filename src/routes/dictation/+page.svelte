@@ -1,6 +1,7 @@
 <script lang="ts">
   import PageScroll from "#lib/components/app/page-scroll.svelte";
   import { onMount } from "svelte";
+  import { KeyboardIcon, MicrophoneIcon } from "@solar-icons/svelte/linear";
   import type { OverlayStyle, ShortcutActivation } from "../../bindings";
   import { inTauri } from "#lib/env.js";
   import PageHeader from "#lib/components/app/page-header.svelte";
@@ -45,7 +46,7 @@
     <SettingsSkeleton groups={2} rows={2} />
   {:else}
 
-  <SettingsGroup title="Shortcut">
+  <SettingsGroup icon={KeyboardIcon} title="Shortcut" description="How you start and stop talking.">
     <SettingRow title="Dictation shortcut" description="Works in any app.">
       <ShortcutRecorder
         label="Dictation shortcut"
@@ -71,7 +72,7 @@
     </SettingRow>
   </SettingsGroup>
 
-  <SettingsGroup title="Output">
+  <SettingsGroup icon={MicrophoneIcon} title="Output" description="What you see while you speak and what happens to the text.">
     <SettingRow title="Recording overlay" description="What shows while you speak.">
       <Select
         items={overlays}

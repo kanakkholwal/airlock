@@ -11,7 +11,7 @@
 <!-- Decision (product): rows separate by a hairline only because they form a list. -->
 <div class="flex items-center justify-between gap-6 py-3 not-first:border-t not-first:border-border/60">
   <div class="min-w-0">
-    <div class="font-medium">{title}</div>
+    <div class="font-[450]">{title}</div>
     {#if description}
       <div class="text-sm text-muted-foreground text-pretty">{description}</div>
     {/if}

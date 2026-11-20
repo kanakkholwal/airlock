@@ -3,16 +3,7 @@
   import { chat } from "#lib/chat.svelte.js";
   import { llm } from "#lib/llm.svelte.js";
   import SpeedTest from "#lib/components/app/speed-test.svelte";
-  import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from "#lib/components/ui/alert-dialog/index.js";
+  import DeleteChatDialog from "#lib/components/app/delete-chat-dialog.svelte";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import {
@@ -22,7 +13,6 @@
     DropdownMenuTrigger,
   } from "#lib/components/ui/dropdown-menu/index.js";
   import { Input } from "#lib/components/ui/input/index.js";
-  import { toast } from "svelte-sonner";
 
   // Decision (product): the header says where you are and links what the chat runs on. The
   // title updates when the auto title arrives, which is the feedback that it worked.
@@ -43,12 +33,6 @@
     if (chat.conversationId !== null) await chat.rename(chat.conversationId, draftTitle);
   }
 
-  async function remove() {
-    const id = chat.conversationId;
-    if (id === null) return;
-    await chat.remove(id);
-    toast("Chat deleted");
-  }
 </script>
 
 <header class="flex h-12 shrink-0 items-center justify-between gap-3 px-4">
@@ -95,17 +79,4 @@
   <SpeedTest run={llm.speedRunner} available={["chat"]} />
 </header>
 
-<AlertDialog bind:open={confirmDelete}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
-      <AlertDialogDescription>
-        "{chat.currentTitle ?? "This chat"}" and its messages will be removed from this computer. This cannot be undone.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Keep</AlertDialogCancel>
-      <AlertDialogAction destructive onclick={remove}>Delete</AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+<DeleteChatDialog bind:open={confirmDelete} id={chat.conversationId} title={chat.currentTitle ?? "This chat"} />

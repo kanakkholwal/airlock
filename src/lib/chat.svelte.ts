@@ -73,6 +73,8 @@ class ChatSession {
   engine = $state<EngineState>("unavailable");
   /** Set when a save fails, so nothing is lost silently. */
   saveError = $state<string | null>(null);
+  /** True once the saved chat list has been read (or there is no backend to read from). */
+  listLoaded = $state(false);
   /** True while a saved conversation is being read from disk. */
   opening = $state(false);
   private nextId = 1;
@@ -123,9 +125,13 @@ class ChatSession {
   }
 
   async refreshList() {
-    if (!inTauri()) return;
+    if (!inTauri()) {
+      this.listLoaded = true;
+      return;
+    }
     const res = await commands.chatListConversations();
     if (res.status === "ok") this.conversations = res.data;
+    this.listLoaded = true;
   }
 
   newChat() {
