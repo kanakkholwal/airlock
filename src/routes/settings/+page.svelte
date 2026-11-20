@@ -19,6 +19,7 @@
   import { general } from "#lib/general-settings.svelte.js";
   import { llm } from "#lib/llm.svelte.js";
   import { memory } from "#lib/memory-settings.svelte.js";
+  import type { ModelUnloadTimeout } from "../../bindings";
   import type { Accelerator } from "#lib/memory-policy.js";
   import { withThemeReveal } from "#lib/theme.js";
   import PageHeader from "#lib/components/app/page-header.svelte";
@@ -76,6 +77,16 @@
     { value: "5", label: "After 5 minutes idle" },
     { value: "15", label: "After 15 minutes idle" },
     { value: "30", label: "After 30 minutes idle" },
+  ];
+  const speechUnloadOptions: { value: ModelUnloadTimeout; label: string }[] = [
+    { value: "never", label: "Keep loaded" },
+    { value: "sec_15", label: "After 15 seconds" },
+    { value: "min_2", label: "After 2 minutes" },
+    { value: "min_5", label: "After 5 minutes" },
+    { value: "min_10", label: "After 10 minutes" },
+    { value: "min_15", label: "After 15 minutes" },
+    { value: "hour_1", label: "After 1 hour" },
+    { value: "immediately", label: "Right after each dictation" },
   ];
   const acceleratorOptions: { value: Accelerator; label: string }[] = [
     { value: "auto", label: "Automatic" },
@@ -173,6 +184,19 @@
       checked={memory.unloadWhenHidden}
       onCheckedChange={(v) => memory.setResidency(memory.idleMinutes, v)}
     />
+  </SettingRow>
+  <SettingRow title="Free speech model memory" description="The speech model loads again on your next dictation. A longer wait makes dictation start faster.">
+    <Select
+      items={speechUnloadOptions}
+      bind:value={() => memory.speechUnload, (v) => void memory.setSpeechUnload(v as ModelUnloadTimeout)}
+    >
+      <SelectTrigger class="w-56">
+        <span class="truncate">{speechUnloadOptions.find((o) => o.value === memory.speechUnload)?.label}</span>
+      </SelectTrigger>
+      <SelectContent align="end">
+        {#each speechUnloadOptions as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}
+      </SelectContent>
+    </Select>
   </SettingRow>
   <SettingRow
     title="Speech processing"

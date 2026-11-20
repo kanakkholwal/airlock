@@ -1,4 +1,4 @@
-import { commands } from "../bindings";
+import { commands, type ModelUnloadTimeout } from "../bindings";
 import { inTauri } from "./env";
 import { defaultAccelerator, type Accelerator } from "./memory-policy";
 
@@ -11,6 +11,7 @@ class MemorySettings {
   idleMinutes = $state(5);
   unloadWhenHidden = $state(true);
   accelerator = $state<Accelerator>("auto");
+  speechUnload = $state<ModelUnloadTimeout>("min_5");
   gpuNames = $state<string[]>([]);
 
   async load() {
@@ -26,7 +27,10 @@ class MemorySettings {
     this.idleMinutes = residency.idle_minutes;
     this.unloadWhenHidden = residency.unload_when_hidden;
     this.gpuNames = accel.gpu_devices.map((g) => `${g.name} (${Math.round(g.total_vram_mb / 1024)} GB)`);
-    if (res.status === "ok") this.accelerator = res.data.transcribe_accelerator ?? "auto";
+    if (res.status === "ok") {
+      this.accelerator = res.data.transcribe_accelerator ?? "auto";
+      this.speechUnload = res.data.model_unload_timeout ?? "min_5";
+    }
 
     // One time: choose the better starting point for this machine. After that it is the user's.
     if (!localStorage.getItem(APPLIED)) {
@@ -42,6 +46,12 @@ class MemorySettings {
     this.unloadWhenHidden = unloadWhenHidden;
     const res = await commands.llmSetResidency(idleMinutes, unloadWhenHidden);
     this.error = res.status === "error" ? res.error : null;
+  }
+
+  async setSpeechUnload(value: ModelUnloadTimeout) {
+    this.speechUnload = value;
+    await commands.setModelUnloadTimeout(value);
+    this.error = null;
   }
 
   async setAccelerator(value: Accelerator) {

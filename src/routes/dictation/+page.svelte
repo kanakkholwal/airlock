@@ -8,7 +8,15 @@
     ShieldCheckIcon,
     SoundwaveIcon,
   } from "@solar-icons/svelte/linear";
-  import { commands, type OverlayStyle, type ShortcutActivation } from "../../bindings";
+  import {
+    commands,
+    type AutoSubmitKey,
+    type ClipboardHandling,
+    type OverlayPosition,
+    type OverlayStyle,
+    type PasteMethod,
+    type ShortcutActivation,
+  } from "../../bindings";
   import { inTauri } from "#lib/env.js";
   import { memory } from "#lib/memory-settings.svelte.js";
   import { speech } from "#lib/speech.svelte.js";
@@ -28,7 +36,10 @@
   import { ShortcutRecorder } from "#lib/components/ui/shortcut-recorder/index.js";
   import { Switch } from "#lib/components/ui/switch/index.js";
   import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
+  import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#lib/components/ui/collapsible/index.js";
+  import { TagInput } from "#lib/components/ui/tag-input/index.js";
   import { Textarea } from "#lib/components/ui/textarea/index.js";
+  import { isMac } from "#lib/dictation/access.js";
 
   // Decision (product): people open this to set talking-to-text up once, check it works, and
   // later find what they said. So: setup is one button, trying it is on the page, and history
@@ -44,6 +55,28 @@
     { value: "minimal", label: "Minimal pill" },
     { value: "live", label: "Live transcript" },
     { value: "none", label: "Hidden" },
+  ];
+
+  const paste = isMac() ? "Cmd+V" : "Ctrl+V";
+  const pasteMethods: { value: PasteMethod; label: string }[] = [
+    { value: "ctrl_v", label: `Paste (${paste})` },
+    { value: "direct", label: "Type it directly" },
+    { value: "shift_insert", label: "Paste (Shift+Insert)" },
+    { value: "ctrl_shift_v", label: "Paste (Ctrl+Shift+V)" },
+    { value: "none", label: "Do not paste" },
+  ];
+  const clipboardOptions: { value: ClipboardHandling; label: string }[] = [
+    { value: "dont_modify", label: "Put my clipboard back" },
+    { value: "copy_to_clipboard", label: "Leave the text on my clipboard" },
+  ];
+  const positions: { value: OverlayPosition; label: string }[] = [
+    { value: "bottom", label: "Bottom of the screen" },
+    { value: "top", label: "Top of the screen" },
+  ];
+  const submitKeys: { value: AutoSubmitKey; label: string }[] = [
+    { value: "enter", label: "Enter" },
+    { value: "ctrl_enter", label: "Ctrl+Enter" },
+    ...(isMac() ? [{ value: "cmd_enter" as AutoSubmitKey, label: "Cmd+Enter" }] : []),
   ];
 
   const mics = $derived([
@@ -81,6 +114,7 @@
       <Tabs bind:value={tab} variant="segment" class="self-center">
         <TabsList>
           <TabsTrigger value="setup">Setup</TabsTrigger>
+          <TabsTrigger value="options">Options</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
@@ -90,6 +124,89 @@
         <HistoryList />
       {:else if tab === "files"}
         <FileTranscribe />
+      {:else if tab === "options"}
+        <SettingsGroup icon={MicrophoneIcon} title="While you speak" description="What you see and hear around a dictation.">
+          <SettingRow title="Recording overlay" description="What shows while you speak.">
+            <Select items={overlays} bind:value={() => dictation.overlayStyle, (v) => dictation.setOverlayStyle(v as OverlayStyle)}>
+              <SelectTrigger class="w-56"><span class="truncate">{overlays.find((o) => o.value === dictation.overlayStyle)?.label}</span></SelectTrigger>
+              <SelectContent align="end">{#each overlays as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}</SelectContent>
+            </Select>
+          </SettingRow>
+          <SettingRow title="Overlay position" description="Where the overlay appears on your screen.">
+            <Select items={positions} bind:value={() => dictation.overlayPosition, (v) => dictation.setOverlayPosition(v as OverlayPosition)}>
+              <SelectTrigger class="w-56"><span class="truncate">{positions.find((o) => o.value === dictation.overlayPosition)?.label}</span></SelectTrigger>
+              <SelectContent align="end">{#each positions as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}</SelectContent>
+            </Select>
+          </SettingRow>
+          <SettingRow title="Mute other sound" description="Silences your speakers while you dictate, so music or a video does not leak into the microphone.">
+            <Switch aria-label="Mute other sound while dictating" checked={dictation.muteWhileRecording} onCheckedChange={(v) => dictation.setMute(v)} />
+          </SettingRow>
+          <SettingRow title="Clean up with a model" description="Fixes punctuation and filler words after you speak.">
+            <Switch aria-label="Clean up with a model" checked={dictation.cleanupWithLlm} onCheckedChange={(v) => dictation.setCleanup(v)} />
+          </SettingRow>
+        </SettingsGroup>
+
+        <SettingsGroup icon={KeyboardIcon} title="Text output" description="How the text gets into the app you are using.">
+          <SettingRow title="How to insert text" description="Pick another method if an app ignores the default. Typing directly works where pasting is blocked.">
+            <Select items={pasteMethods} bind:value={() => dictation.pasteMethod, (v) => dictation.setPasteMethod(v as PasteMethod)}>
+              <SelectTrigger class="w-56"><span class="truncate">{pasteMethods.find((o) => o.value === dictation.pasteMethod)?.label}</span></SelectTrigger>
+              <SelectContent align="end">{#each pasteMethods as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}</SelectContent>
+            </Select>
+          </SettingRow>
+          <SettingRow title="Clipboard" description="Whether your own clipboard is restored after pasting.">
+            <Select items={clipboardOptions} bind:value={() => dictation.clipboardHandling, (v) => dictation.setClipboardHandling(v as ClipboardHandling)}>
+              <SelectTrigger class="w-64"><span class="truncate">{clipboardOptions.find((o) => o.value === dictation.clipboardHandling)?.label}</span></SelectTrigger>
+              <SelectContent align="end">{#each clipboardOptions as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}</SelectContent>
+            </Select>
+          </SettingRow>
+          <SettingRow title="Press a key after inserting" description="Sends the message for you, handy in chat boxes.">
+            <Switch aria-label="Press a key after inserting" checked={dictation.autoSubmit} onCheckedChange={(v) => dictation.setAutoSubmit(v)} />
+          </SettingRow>
+          {#if dictation.autoSubmit}
+            <SettingRow title="Which key" description="The key that is pressed after the text is inserted.">
+              <Select items={submitKeys} bind:value={() => dictation.autoSubmitKey, (v) => dictation.setAutoSubmitKey(v as AutoSubmitKey)}>
+              <SelectTrigger class="w-40"><span class="truncate">{submitKeys.find((o) => o.value === dictation.autoSubmitKey)?.label}</span></SelectTrigger>
+              <SelectContent align="end">{#each submitKeys as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}</SelectContent>
+            </Select>
+            </SettingRow>
+          {/if}
+          <SettingRow title="Add a space after" description="Ends each dictation with a space, so the next one does not run into it.">
+            <Switch aria-label="Add a space after each dictation" checked={dictation.appendTrailingSpace} onCheckedChange={(v) => dictation.setTrailingSpace(v)} />
+          </SettingRow>
+        </SettingsGroup>
+
+        <SettingsGroup icon={SoundwaveIcon} title="Your words" description="Make dictation sound like you.">
+          <SettingRow title="Remove filler words" description="Drops um, uh and similar fillers from the text.">
+            <Switch aria-label="Remove filler words" checked={dictation.fillerWords} onCheckedChange={(v) => dictation.setFillerWords(v)} />
+          </SettingRow>
+          <div class="flex flex-col gap-2 py-3">
+            <div>
+              <div class="font-[450]">Custom words</div>
+              <div class="text-sm text-muted-foreground">Names and terms to spell the way you want. Press Enter after each.</div>
+            </div>
+            <TagInput
+              label="Custom words"
+              placeholder="Add a word"
+              bind:tags={() => dictation.customWords, (v) => void dictation.setCustomWords(v)}
+            />
+          </div>
+        </SettingsGroup>
+
+        <Collapsible>
+          <CollapsibleTrigger class="px-1 text-sm text-muted-foreground underline underline-offset-2">Advanced</CollapsibleTrigger>
+          <CollapsibleContent>
+            <div class="pt-3">
+              <SettingsGroup title="Advanced" description="Leave these on unless you are fixing a specific problem.">
+                <SettingRow title="Skip silence" description="Detects when you are speaking, so silence is not transcribed.">
+                  <Switch aria-label="Skip silence" checked={dictation.vad} onCheckedChange={(v) => dictation.setVad(v)} />
+                </SettingRow>
+                <SettingRow title="Split long recordings" description="Cuts long audio at pauses so it transcribes faster and more accurately.">
+                  <Switch aria-label="Split long recordings" checked={dictation.longFormChunking} onCheckedChange={(v) => dictation.setLongFormChunking(v)} />
+                </SettingRow>
+              </SettingsGroup>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       {:else}
         {#if speech.needsAccess}
           <section class="flex flex-col gap-4 rounded-2xl bg-card p-5">
@@ -209,38 +326,6 @@
                 {/each}
               </SelectContent>
             </Select>
-          </SettingRow>
-        </SettingsGroup>
-
-        <SettingsGroup icon={MicrophoneIcon} title="While you speak" description="What you see and hear around a dictation.">
-          <SettingRow title="Recording overlay" description="What shows while you speak.">
-            <Select
-              items={overlays}
-              bind:value={() => dictation.overlayStyle, (v) => dictation.setOverlayStyle(v as OverlayStyle)}
-            >
-              <SelectTrigger class="w-56">
-                <span class="truncate">{overlays.find((o) => o.value === dictation.overlayStyle)?.label}</span>
-              </SelectTrigger>
-              <SelectContent align="end">
-                {#each overlays as o (o.value)}
-                  <SelectItem value={o.value}>{o.label}</SelectItem>
-                {/each}
-              </SelectContent>
-            </Select>
-          </SettingRow>
-          <SettingRow title="Mute other sound" description="Silences your speakers while you dictate, so music or a video does not leak into the microphone.">
-            <Switch
-              aria-label="Mute other sound while dictating"
-              checked={dictation.muteWhileRecording}
-              onCheckedChange={(v) => dictation.setMute(v)}
-            />
-          </SettingRow>
-          <SettingRow title="Clean up with a model" description="Fixes punctuation and filler words after you speak.">
-            <Switch
-              aria-label="Clean up with a model"
-              checked={dictation.cleanupWithLlm}
-              onCheckedChange={(v) => dictation.setCleanup(v)}
-            />
           </SettingRow>
         </SettingsGroup>
 

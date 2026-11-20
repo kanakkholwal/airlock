@@ -909,6 +909,29 @@
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},
+		"https://baby-ui.pages.dev/svelte/r/tag-input.json": {
+			"name": "tag-input",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T19:17:37.868Z",
+			"itemHash": "47443bb04e57fa5e9ffd97a8c46236d49eedbdc82dc9369b7a93f58053f3be98",
+			"files": {
+				"src/lib/components/ui/tag-input/arm.ts": "2c9407044478c0914c60bdcafe511a45dd599ab4e033b014a6831e5293cfc0ad",
+				"src/lib/components/ui/tag-input/index.ts": "5686465b7818f4c5f5c8e252e8d3fd9af897c5ffecf9c7050eef41d262025cd1",
+				"src/lib/components/ui/tag-input/tag-input.svelte": "b8453772deee2a2ad99ee655e80f512a1b91534ec5a6b609d2910041b3a538b3",
+				"src/lib/components/ui/tag-input/variants.ts": "f815ebcfc8ef1747f50eec90ba6b3623d1f33940ed1e0acb2606b5d808ea5d65",
+				"src/lib/control.ts": "c549ced4d9eb20af1d1b0d73d8100916e435948150485b0a944e358ffaf7921b"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/badge.json",
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
 		"https://baby-ui.pages.dev/svelte/r/textarea.json": {
 			"name": "textarea",
 			"type": "registry:ui",
