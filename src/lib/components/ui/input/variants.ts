@@ -1,5 +1,5 @@
 import { tv, type VariantProps } from "tailwind-variants";
-import { controlSize, fieldFrame, fieldHalo, fieldText } from "$lib/control.js";
+import { controlSize, fieldFrame, fieldHalo, fieldText } from "#lib/control.js";
 
 export const input = tv({
 	base: [fieldFrame(), "w-full min-w-0 placeholder:text-muted-foreground"],

@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { HTMLInputAttributes } from "svelte/elements";
-import { cn } from "$lib/cn.js";
+import { cn } from "#lib/cn.js";
 import { type InputSize, type InputVariant, input } from "./variants";
 
 type Props = {

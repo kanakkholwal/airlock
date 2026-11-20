@@ -19,7 +19,7 @@ export type ButtonProps = {
 </script>
 
 <script lang="ts">
-import { cn } from "$lib/cn.js";
+import { cn } from "#lib/cn.js";
 import { button, buttonFace, isIconSize } from "./variants";
 
 const faceStyles = buttonFace();

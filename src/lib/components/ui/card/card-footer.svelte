@@ -1,7 +1,7 @@
 <script lang="ts">
 import { type Snippet, untrack } from "svelte";
 import type { HTMLAttributes } from "svelte/elements";
-import { cn } from "$lib/cn.js";
+import { cn } from "#lib/cn.js";
 import { getCardWell } from "./context";
 
 let {

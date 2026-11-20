@@ -298,6 +298,59 @@
 			rotate: 360deg;
 		}
 	}
+	@keyframes badge-shine {
+		from {
+			background-position: 150% 0;
+		}
+		45%,
+	to {
+			background-position: -50% 0;
+		}
+	}
+	@keyframes typing-dot {
+		30% {
+			opacity: 1;
+			transform: translateY(-2px);
+		}
+	}
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+	@keyframes message-enter-start {
+		from {
+			opacity: 0;
+			transform: scale(0.9) translateX(-24px);
+		}
+	}
+	@keyframes message-enter-end {
+		from {
+			opacity: 0;
+			transform: scale(0.9) translateX(24px);
+		}
+	}
+	@keyframes reasoning-shimmer {
+		to {
+			background-position: -200% 0;
+		}
+	}
+	@keyframes pixel-on {
+		0%,
+	40%,
+	100% {
+			opacity: 0.15;
+		}
+		20% {
+			opacity: 1;
+		}
+	}
+	@keyframes pop-in {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+	}
 }
 
 @layer base {
@@ -334,8 +387,81 @@
 		.spinner {
 			animation-duration: 2s;
 		}
+		.menu-check path, .menu-dot {
+			transition: none;
+		}
+		.badge-shine {
+			animation: none;
+			background-image: none;
+		}
+		.message-spring-start, .message-spring-end {
+			animation: none;
+		}
+		.pixel-cell, .pop-in {
+			animation: none;
+		}
 	}
 	.group\/slider:has([data-slot="slider-thumb"]:is([data-active], [data-dragging])) .slider-glide {
 		--slider-glide: var(--duration-instant);
+	}
+	.menu-check path {
+		stroke-dasharray: 1;
+		stroke-dashoffset: 1;
+		transition: stroke-dashoffset 250ms linear;
+	}
+	.menu-check[data-on="true"] path, [data-checked]:not([data-checked="false"]) .menu-check path, [data-slot="select-item"][data-selected] .menu-check path {
+		stroke-dashoffset: 0;
+	}
+	.menu-dot {
+		scale: 0.7;
+		opacity: 0;
+		transition: scale 250ms var(--ease-out-quart), opacity 250ms var(--ease-out-quart);
+	}
+	.menu-dot[data-on="true"], [data-checked]:not([data-checked="false"]) .menu-dot {
+		scale: 1;
+		opacity: 1;
+	}
+	.scrollbar-none {
+		scrollbar-width: none;
+	}
+	.scrollbar-none::-webkit-scrollbar {
+		display: none;
+	}
+	.badge-shine {
+		background-image: linear-gradient( 110deg, transparent 35%, color-mix(in oklch, white 60%, transparent) 50%, transparent 65% );
+		background-size: 250% 100%;
+		background-repeat: no-repeat;
+		animation: badge-shine 3.2s var(--ease-ui-in-out) infinite;
+	}
+	.scroll-area {
+		scrollbar-width: thin;
+		scrollbar-color: var(--border-strong) transparent;
+	}
+	.typing-dot {
+		animation: typing-dot 1.2s ease-in-out infinite;
+	}
+	.fade-in {
+		animation: fade-in var(--duration-dropdown) var(--ease-ui-out) both;
+	}
+	.message-spring-start {
+		animation: message-enter-start 420ms var(--ease-spring) both;
+	}
+	.message-spring-end {
+		animation: message-enter-end 420ms var(--ease-spring) both;
+	}
+	.reasoning-shimmer {
+		background: linear-gradient( 90deg, var(--muted-foreground) 0%, var(--foreground) 50%, var(--muted-foreground) 100% ) 0 0 / 200% 100%;
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+		animation: reasoning-shimmer 2s linear infinite;
+	}
+	.pixel-cell {
+		animation-name: pixel-on;
+		animation-timing-function: ease-in-out;
+		animation-iteration-count: infinite;
+	}
+	.pop-in {
+		animation: pop-in 200ms var(--ease-ui-out) both;
 	}
 }

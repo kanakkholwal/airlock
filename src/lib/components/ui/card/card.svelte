@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 import type { HTMLAttributes } from "svelte/elements";
-import { cn } from "$lib/cn.js";
+import { cn } from "#lib/cn.js";
 import { type CardVariant, cardFrame } from "./variants";
 import { type CardWellFooter, setCardWell } from "./context";
 
