@@ -16,8 +16,8 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager};
 use tauri_specta::Event;
 
-use crate::actions::process_transcription_output;
 use crate::audio_toolkit::{decode_audio_file, read_wav_samples, save_wav_file};
+use crate::dictation::actions::process_transcription_output;
 use crate::managers::history::{HistoryEntry, HistoryManager};
 use crate::managers::transcription::{
     panic_payload_message, ChunkControl, Transcription, TranscriptionManager,

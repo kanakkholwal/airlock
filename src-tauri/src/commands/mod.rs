@@ -140,7 +140,7 @@ pub fn check_apple_intelligence_available() -> bool {
 #[specta::specta]
 #[tauri::command]
 pub fn initialize_enigo(app: AppHandle) -> Result<(), String> {
-    use crate::input::EnigoState;
+    use crate::dictation::input::EnigoState;
 
     // Check if already initialized
     if app.try_state::<EnigoState>().is_some() {
@@ -185,11 +185,11 @@ pub fn initialize_shortcuts(app: AppHandle) -> Result<(), String> {
     }
 
     // Initialize shortcuts
-    crate::shortcut::init_shortcuts(&app);
+    crate::dictation::shortcut::init_shortcuts(&app);
 
     // Mark as initialized before reconciling the macOS Secure Input fallback.
     app.manage(ShortcutsInitialized);
-    crate::secure_input::reconcile_fallback(&app);
+    crate::dictation::secure_input::reconcile_fallback(&app);
 
     log::info!("Shortcuts initialized successfully");
     Ok(())
@@ -206,7 +206,7 @@ pub fn complete_onboarding(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// A macOS privacy permission Handy asks for during onboarding.
+/// A macOS privacy permission Airlock asks for during onboarding.
 #[derive(Clone, Copy, Debug, serde::Deserialize, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum MacPermission {
@@ -214,7 +214,7 @@ pub enum MacPermission {
     Microphone,
 }
 
-/// Clears Handy's macOS grant for `permission` before asking for it. A grant is
+/// Clears Airlock's macOS grant for `permission` before asking for it. A grant is
 /// tied to the app's code signature, so after an update the old entry stays in
 /// System Settings without matching the new build: macOS neither honors it nor
 /// asks again, and onboarding waits forever (#1618). Only called while the

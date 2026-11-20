@@ -1,7 +1,10 @@
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::apple_intelligence;
-use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::audio_toolkit::VadPolicy;
+use crate::dictation::audio_feedback::{
+    play_feedback_sound, play_feedback_sound_blocking, SoundType,
+};
+use crate::dictation::shortcut;
 use crate::managers::audio::{recording_notice_code, AudioRecordingManager};
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
@@ -10,7 +13,6 @@ use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::{Transcription, TranscriptionManager};
 use crate::notices::{self, Notice, NoticeCode, NoticeSource};
 use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
-use crate::shortcut;
 use crate::tray::{set_tray_state, TrayIconState};
 use crate::utils::{
     self, show_processing_overlay, show_recording_overlay, show_transcribing_overlay,
@@ -637,7 +639,7 @@ impl ShortcutAction for TranscribeAction {
                     // arming animation on hardware that normally starts too fast
                     // to make it visible.
                     #[cfg(debug_assertions)]
-                    if let Ok(delay_ms) = std::env::var("HANDY_DEBUG_MIC_READY_DELAY_MS")
+                    if let Ok(delay_ms) = std::env::var("AIRLOCK_DEBUG_MIC_READY_DELAY_MS")
                         .unwrap_or_default()
                         .parse::<u64>()
                     {
@@ -874,7 +876,10 @@ impl ShortcutAction for TranscribeAction {
                             // The user's hook only changes what gets pasted;
                             // history above keeps the text as produced.
                             let Some(final_text) = complete_unless_cancelled(
-                                crate::transcription_hook::apply(&ah, processed.final_text),
+                                crate::dictation::transcription_hook::apply(
+                                    &ah,
+                                    processed.final_text,
+                                ),
                                 || rm.was_cancelled_since(cancel_generation),
                             )
                             .await

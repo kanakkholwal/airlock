@@ -1,4 +1,4 @@
-//! Notices: how Handy reports a failure that happens in the background.
+//! Notices: how Airlock reports a failure that happens in the background.
 //! [`raise`] is the one way to do it; see "Error notices" in `AGENTS.md` for
 //! how to add one.
 //!
@@ -6,7 +6,7 @@
 //! instead of hiding it. If another session owns the overlay by then, call
 //! [`raise_without_overlay`].
 
-use crate::overlay;
+use crate::dictation::overlay;
 use crate::tray;
 use crate::tray_i18n::TrayStrings;
 use log::warn;
@@ -19,7 +19,7 @@ use tauri_specta::Event;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum NoticeLevel {
-    /// Nothing came out, or Handy can't do its job.
+    /// Nothing came out, or Airlock can't do its job.
     Error,
     /// The user got a result, but not the one they set up.
     Warning,

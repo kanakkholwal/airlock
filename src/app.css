@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -351,6 +353,46 @@
 			transform: scale(0.95);
 		}
 	}
+	@keyframes switch-refuse {
+		20% {
+			translate: -2px 0;
+		}
+		45% {
+			translate: 2px 0;
+		}
+		70% {
+			translate: -1px 0;
+		}
+	}
+	@keyframes progress-gloss-move {
+		from {
+			translate: -44% 0;
+		}
+		to {
+			translate: 238% 0;
+		}
+	}
+	@keyframes progress-gloss-fade {
+		0%,
+	100% {
+			opacity: 0;
+		}
+		14%,
+	84% {
+			opacity: 0.92;
+		}
+	}
+	@keyframes progress-gloss-scale {
+		0% {
+			scale: 0.94 1;
+		}
+		50% {
+			scale: 1 1;
+		}
+		100% {
+			scale: 0.96 1;
+		}
+	}
 }
 
 @layer base {
@@ -398,6 +440,18 @@
 			animation: none;
 		}
 		.pixel-cell, .pop-in {
+			animation: none;
+		}
+		.switch-thumb {
+			transition: none;
+		}
+		.switch-thumb[data-shake] {
+			animation: none;
+		}
+		.slider-glide, .progress-fill, .progress-ring {
+			transition: none;
+		}
+		.progress-gloss, .progress-spin {
 			animation: none;
 		}
 	}
@@ -464,4 +518,31 @@
 	.pop-in {
 		animation: pop-in 200ms var(--ease-ui-out) both;
 	}
+	.switch-thumb {
+		transition: translate var(--duration-base) var(--ease-ui-out), scale var(--duration-press) var(--ease-ui-out), transform-origin 0s linear var(--duration-base);
+	}
+	.switch-thumb[data-shake] {
+		animation: switch-refuse 420ms var(--ease-ui-out);
+	}
+	.progress-fill {
+		transform-origin: left center;
+		transition: transform var(--duration-spring-snappy) var(--ease-spring-snappy);
+	}
+	.progress-ring {
+		transition: stroke-dasharray var(--duration-spring-snappy) var(--ease-spring-snappy), transform var(--duration-spring-snappy) var(--ease-spring-snappy);
+	}
+	.progress-gloss {
+		background-image: linear-gradient( 90deg, transparent 0%, color-mix(in oklab, currentColor 40%, transparent) 16%, color-mix(in oklab, currentColor 80%, transparent) 50%, color-mix(in oklab, currentColor 40%, transparent) 84%, transparent 100% );
+		animation: progress-gloss-move 1.55s cubic-bezier(0.24, 0.04, 0.2, 1) infinite, progress-gloss-fade 1.55s cubic-bezier(0.24, 0.04, 0.2, 1) infinite, progress-gloss-scale 1.55s cubic-bezier(0.24, 0.04, 0.2, 1) infinite;
+	}
+	.progress-spin {
+		animation: spinner 1.15s linear infinite;
+	}
+}
+
+/* Decision (product): Plus Jakarta Sans for UI and headings, JetBrains Mono for code. */
+:root {
+	--font-heading: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-body: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
 }

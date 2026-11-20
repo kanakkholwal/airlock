@@ -267,7 +267,7 @@ fn extract_punctuation(word: &str) -> (&str, &str) {
 
 /// Evidence for the language of the text being cleaned.
 ///
-/// This intentionally describes the transcription output, not Handy's UI
+/// This intentionally describes the transcription output, not Airlock's UI
 /// language. Unknown output languages fail closed: built-in filler removal is
 /// skipped rather than applying a language profile speculatively.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -277,7 +277,7 @@ pub enum OutputLanguageEvidence {
     /// The transcription model itself identified the language (audio-based
     /// LID, e.g. Whisper in auto mode).
     ModelDetected(String),
-    /// Handy's spoken-language detector picked it, and the model ran with it.
+    /// Airlock's spoken-language detector picked it, and the model ran with it.
     Detected(String),
     /// Detected from the transcribed text with high confidence, constrained to
     /// the model's supported languages. Weakest accepted evidence.
@@ -300,7 +300,7 @@ impl OutputLanguageEvidence {
     }
 }
 
-/// Filler tokens that are not lexical words in any language Handy's models can
+/// Filler tokens that are not lexical words in any language Airlock's models can
 /// output, so removing them cannot corrupt text regardless of the (possibly
 /// unknown) output language. Kept deliberately conservative: anything that is a
 /// real word somewhere ("um" pt/de, "ha" es, "ah"/"eh" interjections, "mm"

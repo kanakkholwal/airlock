@@ -1,4 +1,4 @@
-use crate::input;
+use crate::dictation::input;
 use crate::notices::Notice;
 use crate::settings;
 use crate::settings::{OverlayPosition, OverlayStyle};
@@ -141,8 +141,8 @@ fn configure_layer_shell_surface(
 /// Returns true if layer shell was successfully initialized, false otherwise
 #[cfg(target_os = "linux")]
 fn init_gtk_layer_shell(overlay_window: &tauri::webview::WebviewWindow) -> bool {
-    if utils::env_flag_enabled("HANDY_NO_GTK_LAYER_SHELL") {
-        debug!("Skipping GTK layer shell init (HANDY_NO_GTK_LAYER_SHELL is enabled)");
+    if utils::env_flag_enabled("AIRLOCK_NO_GTK_LAYER_SHELL") {
+        debug!("Skipping GTK layer shell init (AIRLOCK_NO_GTK_LAYER_SHELL is enabled)");
         return false;
     }
 

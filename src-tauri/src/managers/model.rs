@@ -22,11 +22,11 @@ use download::{
     HttpDownloadOutcome, RateMeter, DOWNLOAD_STALL_TIMEOUT, PROGRESS_THROTTLE, PROGRESS_TICK,
 };
 
-/// Where a model comes from and how Handy obtains it — the routing discriminant
+/// Where a model comes from and how Airlock obtains it — the routing discriminant
 /// for downloading and on-disk resolution.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum ModelSource {
-    /// Direct HTTP download from a URL (current blob.handy.computer hosting).
+    /// Direct HTTP download from a URL (the current model hosting).
     Url {
         url: String,
         /// Expected SHA-256 for integrity verification; `None` skips it.
@@ -582,7 +582,7 @@ struct FileTransfer<'a> {
     progress: ProgressTarget,
 }
 
-/// Bridges hf-hub's async download progress to Handy's `model-download-progress`
+/// Bridges hf-hub's async download progress to Airlock's `model-download-progress`
 /// event. hf-hub clones the reporter, so shared state lives behind an `Arc`.
 #[derive(Clone)]
 struct HfDownloadProgress {
@@ -1146,7 +1146,7 @@ impl ModelManager {
     }
 
     /// Re-run the local discovery scans (custom models dir + shared HF cache) so
-    /// models dropped in or downloaded outside Handy show up without a restart.
+    /// models dropped in or downloaded outside Airlock show up without a restart.
     /// The merge is additive: only new ids are inserted, so existing entries keep
     /// their values — including runtime-probed capabilities from
     /// [`Self::set_runtime_capabilities`]. It then runs [`Self::update_download_status`],
@@ -1669,7 +1669,7 @@ impl ModelManager {
     }
 
     /// Discover transcribe-cpp-compatible GGUF models already present in the
-    /// shared Hugging Face cache, so models downloaded by Handy (or any other
+    /// shared Hugging Face cache, so models downloaded by Airlock (or any other
     /// tool) appear in "Your Models" without re-downloading. Only architectures
     /// transcribe-cpp recognises are surfaced; arbitrary (e.g. LLM) GGUFs that
     /// share the cache are ignored.

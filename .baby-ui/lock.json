@@ -234,6 +234,25 @@
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},
+		"https://baby-ui.pages.dev/svelte/r/label.json": {
+			"name": "label",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T15:59:43.683Z",
+			"itemHash": "e5dd83193689e0ca70011cb865d756b652e8867c685b2823ac06ec45ea03d7ef",
+			"files": {
+				"src/lib/cn.ts": "0fca478853f3fc4310e40ebff727a53da7ec677938f4e3e0d5ecaa62e936a199",
+				"src/lib/components/ui/label/index.ts": "47c9033728e9f29ec995cc6f3a200295b679f663e8c0eaea05933862ba4cd801",
+				"src/lib/components/ui/label/label.svelte": "4e26855dab5e94574fd4fd90d43bd51629c43ddda6b0d389db8567bd9325d21c"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
 		"https://baby-ui.pages.dev/svelte/r/loading-state.json": {
 			"name": "loading-state",
 			"type": "registry:ui",
@@ -280,6 +299,28 @@
 				"src/lib/components/agents/message/variants.ts": "205bc1eb7c7de19b2fb2ca914de5c52eab8875fd3127baa68e3692b0f2f6e44c"
 			},
 			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
+		"https://baby-ui.pages.dev/svelte/r/progress.json": {
+			"name": "progress",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T17:15:45.841Z",
+			"itemHash": "e1c5c65174753a1236eb3189e11fe5e76da57a475283950675b96d9c3a229b41",
+			"files": {
+				"src/lib/cn.ts": "0fca478853f3fc4310e40ebff727a53da7ec677938f4e3e0d5ecaa62e936a199",
+				"src/lib/components/ui/progress/index.ts": "5ea4ebae7794ce6839a814ae3695c1290bd35aada4cabee84d4364091d7025ad",
+				"src/lib/components/ui/progress/progress.svelte": "f7c480360e7d35ea2acaecd6436b6c32f241cdd0cf5e9ff00a31eaaf7d3871c6",
+				"src/lib/components/ui/progress/variants.ts": "5e9a54937544eced04b3a1e34382d6e50e8115522d70524c3a016ca1c4e2a318"
+			},
+			"dependencies": [
+				"bits-ui",
 				"clsx",
 				"tailwind-merge",
 				"tailwind-variants"
@@ -342,6 +383,50 @@
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},
+		"https://baby-ui.pages.dev/svelte/r/shortcut-recorder.json": {
+			"name": "shortcut-recorder",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T15:59:43.682Z",
+			"itemHash": "a3c13969dadcd00fe3d425d7f0dc5ba719a514c99c46f618fe2d655ff9ed7c29",
+			"files": {
+				"src/lib/components/ui/shortcut-recorder/index.ts": "481ee7d0cb34a12e227ea1987658efcabde9d1adda19fd5540e2fdb11f26d2dc",
+				"src/lib/components/ui/shortcut-recorder/recorder.ts": "8001ac8498dbb3f156111fbc1dcf6b3d91839e5eb16545d36b5867a081035074",
+				"src/lib/components/ui/shortcut-recorder/shortcut-recorder.svelte": "bd9824a55a8320c75f1ffca455d038faaf586a13f5b9b1c4386be91ecf2a678a",
+				"src/lib/components/ui/shortcut-recorder/variants.ts": "917d22d120058d231a61b6f9c2782d0ae97ac7240a9c88b41280c2b31db86b5b"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/button.json",
+				"https://baby-ui.pages.dev/svelte/r/shortcut.json",
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
+		"https://baby-ui.pages.dev/svelte/r/shortcut.json": {
+			"name": "shortcut",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T15:59:43.683Z",
+			"itemHash": "dfeaf03a940b034eb5f6a1b019ce2ea611943d58a769c1085fe5dc662d717d9f",
+			"files": {
+				"src/lib/components/ui/shortcut/index.ts": "5c544fae13fd0e8039544c08bf38ac1afdf40e523a57813d9568920ea8a1b73c",
+				"src/lib/components/ui/shortcut/shortcut.svelte": "ab9ea47b97528071addd453a0af6f2ba50486af445228a59f28bdf065b7463db",
+				"src/lib/components/ui/shortcut/variants.ts": "a13e3d270b99b129c435d988af0d18b94f22ca803949c431fdaa56958805124c",
+				"src/lib/shortcut-keys.ts": "5ab9f70576b1b86441d589230863111b66b72777483411f8126f495f32ed0797"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
 		"https://baby-ui.pages.dev/svelte/r/sidebar-nav.json": {
 			"name": "sidebar-nav",
 			"type": "registry:ui",
@@ -363,6 +448,27 @@
 			"registryDependencies": [
 				"https://baby-ui.pages.dev/svelte/r/avatar.json",
 				"https://baby-ui.pages.dev/svelte/r/dropdown-menu.json",
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
+		"https://baby-ui.pages.dev/svelte/r/switch.json": {
+			"name": "switch",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T15:59:43.619Z",
+			"itemHash": "15c0df6fd87f30f7f4b10c7b4de4eeb2d41ed995732c547642c0fee6d462bf5b",
+			"files": {
+				"src/lib/components/ui/switch/index.ts": "393ace18062c7c81937d3d697aa449d86282a32f360d7d73e28dfdb8b6092f9e",
+				"src/lib/components/ui/switch/switch.svelte": "7c6f3af604515bcfcf7725c81992c0eb4b66f3e28b2b28249570aaf4c102308c",
+				"src/lib/components/ui/switch/variants.ts": "2784bc9e4156915b3a74a1b82712ec7d4df2d7dc8a6b4b1be97cb0cb873d2f19"
+			},
+			"dependencies": [
+				"bits-ui",
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},

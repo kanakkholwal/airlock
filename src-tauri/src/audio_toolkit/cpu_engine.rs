@@ -1,4 +1,4 @@
-//! transcribe.cpp inside Handy's own process, for the small CPU-only models:
+//! transcribe.cpp inside Airlock's own process, for the small CPU-only models:
 //! Silero VAD and the spoken-language detector. Everything that can touch a
 //! GPU runs in the engine worker instead (`engine_supervisor`).
 

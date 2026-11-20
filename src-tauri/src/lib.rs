@@ -1,35 +1,26 @@
-mod actions;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
-mod audio_feedback;
 pub mod audio_toolkit;
 mod autostart;
 mod catalog;
-mod chinese_script;
+mod chat;
 pub mod cli;
-mod clipboard;
 mod commands;
+mod dictation;
+use dictation::{actions, overlay, secure_input, shortcut, transcription_coordinator};
 pub mod engine_supervisor;
 mod helpers;
-mod input;
 mod language_detection;
 mod languages;
+mod llm;
 mod llm_client;
 mod managers;
 mod memory;
 mod notices;
-mod overlay;
-mod paste_tx;
 pub mod portable;
-#[cfg(target_os = "linux")]
-mod primary_selection;
-mod secure_input;
 mod settings;
-mod shortcut;
 mod signal_handle;
 mod system_languages;
-mod transcription_coordinator;
-mod transcription_hook;
 mod tray;
 mod tray_i18n;
 mod utils;
@@ -40,10 +31,10 @@ pub use cli::CliArgs;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, collect_events, Builder};
 #[cfg(target_os = "linux")]
-pub use utils::apply_handy_gdk_backend;
+pub use utils::apply_airlock_gdk_backend;
 pub use utils::env_flag_enabled;
 #[cfg(target_os = "linux")]
-pub use utils::{disable_gamescope_wsi_layer, gamescope_wsi_disabled_by_handy};
+pub use utils::{disable_gamescope_wsi_layer, gamescope_wsi_disabled_by_airlock};
 
 use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
@@ -226,6 +217,11 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(tray::TrayState::new());
+    llm::commands::manage(app_handle);
+    llm::models::manage(app_handle);
+    if let Err(e) = chat::commands::manage(app_handle) {
+        log::error!("Chat database unavailable: {e}");
+    }
     app_handle.manage(TranscriptionJobManager::new(app_handle));
 
     // Note: Shortcuts are NOT initialized here.
@@ -664,9 +660,9 @@ pub fn run(cli_args: CliArgs) {
     // Avoid ggml-metal residency-set teardown assertions when a native engine
     // outlives the Tauri shutdown sequence (#1902). This must happen before
     // transcribe-cpp initializes its Metal device. Advanced users can restore
-    // upstream residency behavior with HANDY_METAL_RESIDENCY=1.
+    // upstream residency behavior with AIRLOCK_METAL_RESIDENCY=1.
     #[cfg(target_os = "macos")]
-    if std::env::var("HANDY_METAL_RESIDENCY").as_deref() == Ok("1") {
+    if std::env::var("AIRLOCK_METAL_RESIDENCY").as_deref() == Ok("1") {
         // ggml treats GGML_METAL_NO_RESIDENCY as presence-based, so remove an
         // inherited value as well when explicitly opting back in.
         std::env::remove_var("GGML_METAL_NO_RESIDENCY");
@@ -751,8 +747,8 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_transcribe_accelerator_setting,
             shortcut::change_transcribe_gpu_device,
             shortcut::get_available_accelerators,
-            shortcut::handy_keys::start_handy_keys_recording,
-            shortcut::handy_keys::stop_handy_keys_recording,
+            shortcut::global_keys::start_global_keys_recording,
+            shortcut::global_keys::stop_global_keys_recording,
             secure_input::get_secure_input_status,
             secure_input::run_keyboard_diagnostic,
             trigger_update_check,
@@ -768,6 +764,29 @@ pub fn run(cli_args: CliArgs) {
             commands::open_recordings_folder,
             commands::open_log_dir,
             commands::open_app_data_dir,
+            chat::commands::chat_list_conversations,
+            chat::commands::chat_create_conversation,
+            chat::commands::chat_load_messages,
+            chat::commands::chat_append_message,
+            chat::commands::chat_rename_conversation,
+            chat::commands::chat_delete_conversation,
+            llm::commands::llm_status,
+            llm::commands::llm_start_model,
+            llm::paths::llm_storage_paths,
+            llm::paths::llm_set_storage_paths,
+            llm::engines::llm_engines,
+            llm::engines::llm_install_engine,
+            llm::engines::llm_remove_engine,
+            llm::models::llm_catalog,
+            llm::models::llm_download,
+            llm::models::llm_download_cancel,
+            llm::models::llm_delete_model,
+            llm::models::llm_import_model,
+            llm::models::llm_memory_check,
+            llm::commands::llm_stop,
+            llm::commands::chat_stream,
+            llm::commands::chat_cancel,
+            llm::commands::speed_test_chat,
             commands::check_apple_intelligence_available,
             commands::initialize_enigo,
             commands::initialize_shortcuts,
@@ -831,6 +850,7 @@ pub fn run(cli_args: CliArgs) {
             transcription_coordinator::RecordingStateEvent,
             actions::TranscriptionCompleteEvent,
             notices::NoticesChanged,
+            llm::engine::LlmStateChanged,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds
@@ -876,11 +896,11 @@ pub fn run(cli_args: CliArgs) {
                     Target::new(if let Some(data_dir) = portable::data_dir() {
                         TargetKind::Folder {
                             path: data_dir.join("logs"),
-                            file_name: Some("handy".into()),
+                            file_name: Some("airlock".into()),
                         }
                     } else {
                         TargetKind::LogDir {
-                            file_name: Some("handy".into()),
+                            file_name: Some("airlock".into()),
                         }
                     })
                     .filter(|metadata| {
@@ -953,22 +973,22 @@ pub fn run(cli_args: CliArgs) {
         .setup(move |app| {
             #[cfg(target_os = "windows")]
             log::info!(
-                "Vulkan layer policy: VK_LOADER_LAYERS_DISABLE={:?}, HANDY_KEEP_VULKAN_IMPLICIT_LAYERS={}",
+                "Vulkan layer policy: VK_LOADER_LAYERS_DISABLE={:?}, AIRLOCK_KEEP_VULKAN_IMPLICIT_LAYERS={}",
                 std::env::var_os("VK_LOADER_LAYERS_DISABLE"),
-                utils::env_flag_enabled("HANDY_KEEP_VULKAN_IMPLICIT_LAYERS"),
+                utils::env_flag_enabled("AIRLOCK_KEEP_VULKAN_IMPLICIT_LAYERS"),
             );
             #[cfg(target_os = "linux")]
             log::info!(
-                "GTK backend: GDK_BACKEND={:?}, HANDY_GDK_BACKEND={:?} (applied: {})",
+                "GTK backend: GDK_BACKEND={:?}, AIRLOCK_GDK_BACKEND={:?} (applied: {})",
                 std::env::var_os("GDK_BACKEND"),
-                std::env::var_os("HANDY_GDK_BACKEND"),
-                std::env::var("HANDY_GDK_BACKEND").is_ok_and(|v| !v.trim().is_empty()),
+                std::env::var_os("AIRLOCK_GDK_BACKEND"),
+                std::env::var("AIRLOCK_GDK_BACKEND").is_ok_and(|v| !v.trim().is_empty()),
             );
             #[cfg(target_os = "linux")]
             log::info!(
-                "Gamescope WSI layer policy: DISABLE_GAMESCOPE_WSI={:?} (set by Handy: {})",
+                "Gamescope WSI layer policy: DISABLE_GAMESCOPE_WSI={:?} (set by Airlock: {})",
                 std::env::var_os("DISABLE_GAMESCOPE_WSI"),
-                utils::gamescope_wsi_disabled_by_handy(),
+                utils::gamescope_wsi_disabled_by_airlock(),
             );
             system_languages::log_system_languages();
 
@@ -1018,7 +1038,7 @@ pub fn run(cli_args: CliArgs) {
             // for portable mode (redirects WebView2 cache to portable Data dir)
             let mut win_builder =
                 tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
-                    .title("Handy")
+                    .title("Airlock")
                     .inner_size(utils::MAIN_WINDOW_SIZE.0, utils::MAIN_WINDOW_SIZE.1)
                     .min_inner_size(utils::MAIN_WINDOW_SIZE.0, utils::MAIN_WINDOW_SIZE.1)
                     .resizable(true)

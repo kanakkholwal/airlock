@@ -9,7 +9,7 @@
 //! coalesced into it, so bursts of state changes never queue up native work.
 //!
 //! Why: native tray updates are the lever we control for the macOS tray
-//! disappearance bug (tauri-apps/tauri#12060, Handy #1948). Before this, every
+//! disappearance bug (tauri-apps/tauri#12060, Airlock #1948). Before this, every
 //! recording cycle rebuilt the full menu 3-6 times from several threads, and
 //! concurrent rebuilds could interleave and leave a stale menu behind.
 //!
@@ -349,7 +349,7 @@ fn sync_tray_with(app: &AppHandle, update: impl FnOnce(&mut TrayInner)) {
 fn compute_desired(app: &AppHandle, icon_state: TrayIconState) -> TrayDesired {
     let settings = settings::get_settings(app);
     let theme = get_current_theme(app);
-    let secure_input = crate::secure_input::tray_warning_active(app);
+    let secure_input = crate::dictation::secure_input::tray_warning_active(app);
     let notice = notices::tray_headline(app);
     let badge = secure_input || notice.is_some();
     let tm = app.state::<Arc<TranscriptionManager>>();
@@ -616,15 +616,15 @@ pub fn tray_tooltip() -> String {
 
 fn version_label() -> String {
     if cfg!(debug_assertions) {
-        format!("Handy v{} (Dev)", env!("CARGO_PKG_VERSION"))
+        format!("Airlock v{} (Dev)", env!("CARGO_PKG_VERSION"))
     } else {
-        format!("Handy v{}", env!("CARGO_PKG_VERSION"))
+        format!("Airlock v{}", env!("CARGO_PKG_VERSION"))
     }
 }
 
 /// Builds the tray menu and tooltip for the given inputs. Pure with respect
 /// to app state: everything it depends on is in `inputs`, plus the
-/// process-constant `HANDY_DISABLE_UPDATER` env flag behind
+/// process-constant `AIRLOCK_DISABLE_UPDATER` env flag behind
 /// `update_checks_forced_disabled()`, which cannot change during a run.
 fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri::Wry>, String)> {
     let strings = get_tray_translations(Some(inputs.locale.clone()));
@@ -758,7 +758,7 @@ fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri
         menu
     };
 
-    // When update checks are forced off (e.g. HANDY_DISABLE_UPDATER, set by
+    // When update checks are forced off (e.g. AIRLOCK_DISABLE_UPDATER, set by
     // the Nix package), the item is dropped from the menu rather than shown
     // disabled — it can never do anything in that case, and a disabled item
     // still shifts every entry below it by one position. A manually-disabled
@@ -807,7 +807,7 @@ pub fn set_tray_visibility(app: &AppHandle, visible: bool) {
 /// Recovery for the macOS tray-disappearance bug (#1948, tauri-apps/tauri#12060):
 /// the `NSStatusItem` can silently vanish with no error surfaced to the app.
 /// Hiding and re-showing the tray recreates it with its current icon, menu and
-/// tooltip. Called when the user "relaunches" Handy while it is already running
+/// tooltip. Called when the user "relaunches" Airlock while it is already running
 /// (`RunEvent::Reopen` for Spotlight/Finder/Dock, the single-instance callback
 /// for a second process) — the natural "where did my icon go?" moment — so a
 /// relaunch brings the icon back without a full quit.

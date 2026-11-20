@@ -17,7 +17,7 @@ struct Read {
     problem: Option<String>,
 }
 
-/// Read once: they rarely change while Handy runs.
+/// Read once: they rarely change while Airlock runs.
 static READ: Lazy<Read> = Lazy::new(read);
 
 /// The OS's preferred languages, most preferred first, as BCP-47 tags
@@ -93,7 +93,7 @@ pub fn suggested_chinese_script<'a>(
     tags: impl IntoIterator<Item = &'a str>,
 ) -> Option<ChineseScript> {
     tags.into_iter()
-        .find_map(crate::chinese_script::chinese_script_for_locale)
+        .find_map(crate::dictation::chinese_script::chinese_script_for_locale)
 }
 
 /// What onboarding suggests, from the OS's languages.
@@ -103,7 +103,7 @@ struct Suggestion {
     chinese_script: Option<ChineseScript>,
 }
 
-/// Injects the suggestion as `window.__HANDY_SYSTEM_LANGUAGES__`, since onboarding
+/// Injects the suggestion as `window.__AIRLOCK_SYSTEM_LANGUAGES__`, since onboarding
 /// needs it synchronously before a command could answer.
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     let tags = system_languages().iter().map(String::as_str);
@@ -113,7 +113,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     };
     let json = serde_json::to_string(&suggestion).expect("suggestion serializes");
     tauri::plugin::Builder::new("system-languages")
-        .js_init_script(format!("window.__HANDY_SYSTEM_LANGUAGES__ = {json};"))
+        .js_init_script(format!("window.__AIRLOCK_SYSTEM_LANGUAGES__ = {json};"))
         .build()
 }
 

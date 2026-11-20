@@ -25,8 +25,8 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use super::{evaluate, send_chord, TxState, WaitDecision};
-use crate::clipboard::send_return_key;
-use crate::input::EnigoState;
+use crate::dictation::clipboard::send_return_key;
+use crate::dictation::input::EnigoState;
 use crate::settings::{AutoSubmitKey, ClipboardHandling, PasteMethod};
 
 /// Concealment marker types declared alongside the text so that well-behaved
@@ -48,11 +48,11 @@ define_class!(
     // SAFETY: NSObject has no subclassing requirements and the ivars are
     // plain Rust values guarded by a Mutex.
     #[unsafe(super(NSObject))]
-    #[name = "HandyPasteProvider"]
+    #[name = "AirlockPasteProvider"]
     #[ivars = ProviderIvars]
-    pub struct HandyPasteProvider;
+    pub struct AirlockPasteProvider;
 
-    impl HandyPasteProvider {
+    impl AirlockPasteProvider {
         // NSPasteboardOwner informal protocol: the pasteboard is asking for the
         // promised data — our receipt that a consumer read the clipboard.
         #[unsafe(method(pasteboard:provideDataForType:))]
@@ -86,7 +86,7 @@ define_class!(
     }
 );
 
-impl HandyPasteProvider {
+impl AirlockPasteProvider {
     fn new(state: Arc<Mutex<TxState>>, text: String) -> Retained<Self> {
         let this = Self::alloc().set_ivars(ProviderIvars { state, text });
         unsafe { msg_send![super(this), init] }
@@ -98,7 +98,7 @@ struct MacPending {
     saved_text: Option<String>,
     saved_image: Option<tauri::image::Image<'static>>,
     change_count: NSInteger,
-    provider: Option<Retained<HandyPasteProvider>>,
+    provider: Option<Retained<AirlockPasteProvider>>,
     auto_submit: bool,
     auto_submit_key: AutoSubmitKey,
     /// ClipboardHandling::CopyToClipboard — instead of restoring, settle by
@@ -277,7 +277,7 @@ pub(super) fn run(
     };
 
     let state = Arc::new(Mutex::new(TxState::new()));
-    let provider = HandyPasteProvider::new(state.clone(), text.to_string());
+    let provider = AirlockPasteProvider::new(state.clone(), text.to_string());
     let pasteboard = NSPasteboard::generalPasteboard();
 
     let mut types: Vec<Retained<NSString>> = Vec::with_capacity(1 + CONCEALMENT_TYPES.len());

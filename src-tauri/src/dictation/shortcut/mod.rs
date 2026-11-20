@@ -4,13 +4,13 @@
 //! multiple backend implementations:
 //!
 //! - `tauri`: Uses Tauri's built-in global-shortcut plugin
-//! - `handy_keys`: Uses the handy-keys library for more control
+//! - `global_keys`: Uses the handy-keys library for more control
 //!
 //! The active implementation is determined by the `keyboard_implementation`
 //! setting and can be changed at runtime.
 
+pub mod global_keys;
 mod handler;
-pub mod handy_keys;
 pub mod tauri_impl;
 
 use log::{debug, error, info, warn};
@@ -29,7 +29,7 @@ use crate::settings::{
 };
 use crate::tray;
 
-// Note: Commands are accessed via shortcut::handy_keys:: in lib.rs
+// Note: Commands are accessed via shortcut::global_keys:: in lib.rs
 
 /// Initialize shortcuts using the configured implementation
 pub fn init_shortcuts(app: &AppHandle) {
@@ -40,13 +40,13 @@ pub fn init_shortcuts(app: &AppHandle) {
         KeyboardImplementation::Tauri => {
             tauri_impl::init_shortcuts(app);
         }
-        KeyboardImplementation::HandyKeys => {
-            if let Err(e) = handy_keys::init_shortcuts(app) {
+        KeyboardImplementation::GlobalKeys => {
+            if let Err(e) = global_keys::init_shortcuts(app) {
                 error!("Failed to initialize handy-keys shortcuts: {}", e);
                 // Fall back to Tauri implementation and persist this fallback
                 warn!("Falling back to Tauri global shortcut implementation and saving fallback to settings");
 
-                // Update settings to persist the fallback so we don't retry HandyKeys on next launch
+                // Update settings to persist the fallback so we don't retry GlobalKeys on next launch
                 let mut settings = settings::get_settings(app);
                 settings.keyboard_implementation = KeyboardImplementation::Tauri;
                 settings::write_settings(app, settings);
@@ -73,7 +73,7 @@ static CANCEL_REGISTERED: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
 pub fn register_cancel_shortcut(app: &AppHandle) {
     // Track recording lifecycle independently of the current implementation so
     // switching implementations mid-recording cannot leave stale fallback state.
-    crate::secure_input::register_cancel_fallback(app);
+    crate::dictation::secure_input::register_cancel_fallback(app);
 
     CANCEL_REQUESTED.store(true, Ordering::SeqCst);
     schedule_cancel_reconcile(app);
@@ -81,7 +81,7 @@ pub fn register_cancel_shortcut(app: &AppHandle) {
 
 /// Unregister the cancel shortcut (called when recording stops)
 pub fn unregister_cancel_shortcut(app: &AppHandle) {
-    crate::secure_input::unregister_cancel_fallback(app);
+    crate::dictation::secure_input::unregister_cancel_fallback(app);
 
     CANCEL_REQUESTED.store(false, Ordering::SeqCst);
     schedule_cancel_reconcile(app);
@@ -138,7 +138,7 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
     let settings = get_settings(app);
     match settings.keyboard_implementation {
         KeyboardImplementation::Tauri => tauri_impl::register_shortcut(app, binding),
-        KeyboardImplementation::HandyKeys => handy_keys::register_shortcut(app, binding),
+        KeyboardImplementation::GlobalKeys => global_keys::register_shortcut(app, binding),
         KeyboardImplementation::None => Ok(()),
     }
 }
@@ -148,7 +148,7 @@ pub fn unregister_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<
     let settings = get_settings(app);
     match settings.keyboard_implementation {
         KeyboardImplementation::Tauri => tauri_impl::unregister_shortcut(app, binding),
-        KeyboardImplementation::HandyKeys => handy_keys::unregister_shortcut(app, binding),
+        KeyboardImplementation::GlobalKeys => global_keys::unregister_shortcut(app, binding),
         KeyboardImplementation::None => Ok(()),
     }
 }
@@ -212,7 +212,7 @@ pub fn change_binding(
             b.current_binding = binding;
             settings.bindings.insert(id.clone(), b.clone());
             settings::write_settings(&app, settings);
-            crate::secure_input::reconcile_fallback(&app);
+            crate::dictation::secure_input::reconcile_fallback(&app);
             return Ok(BindingResponse {
                 success: true,
                 binding: Some(b.clone()),
@@ -256,7 +256,7 @@ pub fn change_binding(
 
     // Save the settings and synchronize any active Secure Input shadows.
     settings::write_settings(&app, settings);
-    crate::secure_input::reconcile_fallback(&app);
+    crate::dictation::secure_input::reconcile_fallback(&app);
 
     // Return the updated binding
     Ok(BindingResponse {
@@ -387,13 +387,14 @@ pub fn change_keyboard_implementation_setting(
     // Carbon fallback registrations use the Tauri plugin. Remove them before
     // registering the full Tauri implementation to avoid duplicate conflicts.
     if new_impl == KeyboardImplementation::Tauri {
-        crate::secure_input::reconcile_fallback(&app);
+        crate::dictation::secure_input::reconcile_fallback(&app);
     }
 
-    // Initialize new implementation if needed (HandyKeys needs state)
-    if new_impl == KeyboardImplementation::HandyKeys && initialize_handy_keys_with_rollback(&app)? {
+    // Initialize new implementation if needed (GlobalKeys needs state)
+    if new_impl == KeyboardImplementation::GlobalKeys && initialize_global_keys_with_rollback(&app)?
+    {
         // Shortcuts already registered during init.
-        crate::secure_input::reconcile_fallback(&app);
+        crate::dictation::secure_input::reconcile_fallback(&app);
         return Ok(ImplementationChangeResult {
             success: true,
             reset_bindings: vec![],
@@ -402,7 +403,7 @@ pub fn change_keyboard_implementation_setting(
 
     // Register all shortcuts with new implementation, resetting invalid ones
     let reset_bindings = register_all_shortcuts_for_implementation(&app, new_impl);
-    crate::secure_input::reconcile_fallback(&app);
+    crate::dictation::secure_input::reconcile_fallback(&app);
 
     // Emit event to notify frontend of the change
     let _ = app.emit(
@@ -429,7 +430,7 @@ pub fn get_keyboard_implementation(app: AppHandle) -> String {
     let settings = settings::get_settings(&app);
     match settings.keyboard_implementation {
         KeyboardImplementation::Tauri => "tauri".to_string(),
-        KeyboardImplementation::HandyKeys => "handy_keys".to_string(),
+        KeyboardImplementation::GlobalKeys => "global_keys".to_string(),
         KeyboardImplementation::None => "none".to_string(),
     }
 }
@@ -445,7 +446,7 @@ fn validate_shortcut_for_implementation(
 ) -> Result<(), String> {
     match implementation {
         KeyboardImplementation::Tauri => tauri_impl::validate_shortcut(raw),
-        KeyboardImplementation::HandyKeys => handy_keys::validate_shortcut(raw),
+        KeyboardImplementation::GlobalKeys => global_keys::validate_shortcut(raw),
         KeyboardImplementation::None => Ok(()),
     }
 }
@@ -454,7 +455,7 @@ fn validate_shortcut_for_implementation(
 fn parse_keyboard_implementation(s: &str) -> KeyboardImplementation {
     match s {
         "tauri" => KeyboardImplementation::Tauri,
-        "handy_keys" => KeyboardImplementation::HandyKeys,
+        "global_keys" => KeyboardImplementation::GlobalKeys,
         "none" => KeyboardImplementation::None,
         other => {
             warn!(
@@ -478,7 +479,7 @@ fn unregister_all_shortcuts(app: &AppHandle, implementation: KeyboardImplementat
 
         let result = match implementation {
             KeyboardImplementation::Tauri => tauri_impl::unregister_shortcut(app, binding),
-            KeyboardImplementation::HandyKeys => handy_keys::unregister_shortcut(app, binding),
+            KeyboardImplementation::GlobalKeys => global_keys::unregister_shortcut(app, binding),
             KeyboardImplementation::None => Ok(()),
         };
 
@@ -537,7 +538,7 @@ fn register_all_shortcuts_for_implementation(
         // Register with the appropriate implementation
         let result = match implementation {
             KeyboardImplementation::Tauri => tauri_impl::register_shortcut(app, binding),
-            KeyboardImplementation::HandyKeys => handy_keys::register_shortcut(app, binding),
+            KeyboardImplementation::GlobalKeys => global_keys::register_shortcut(app, binding),
             KeyboardImplementation::None => Ok(()),
         };
 
@@ -557,22 +558,22 @@ fn register_all_shortcuts_for_implementation(
     reset_bindings
 }
 
-/// Initialize HandyKeys if not already initialized, with rollback on failure
-fn initialize_handy_keys_with_rollback(app: &AppHandle) -> Result<bool, String> {
-    if app.try_state::<handy_keys::HandyKeysState>().is_some() {
+/// Initialize GlobalKeys if not already initialized, with rollback on failure
+fn initialize_global_keys_with_rollback(app: &AppHandle) -> Result<bool, String> {
+    if app.try_state::<global_keys::GlobalKeysState>().is_some() {
         return Ok(false); // Already initialized, caller should continue
     }
 
-    if let Err(e) = handy_keys::init_shortcuts(app) {
-        error!("Failed to initialize HandyKeys: {}", e);
+    if let Err(e) = global_keys::init_shortcuts(app) {
+        error!("Failed to initialize GlobalKeys: {}", e);
         // Rollback to Tauri
         let mut settings = settings::get_settings(app);
         settings.keyboard_implementation = KeyboardImplementation::Tauri;
         settings::write_settings(app, settings);
-        crate::secure_input::reconcile_fallback(app);
+        crate::dictation::secure_input::reconcile_fallback(app);
         tauri_impl::init_shortcuts(app);
         return Err(format!(
-            "Failed to initialize HandyKeys: {}. Reverted to Tauri.",
+            "Failed to initialize GlobalKeys: {}. Reverted to Tauri.",
             e
         ));
     }
@@ -772,7 +773,7 @@ pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(),
 
     // Keep the cached overlay-enabled flag in sync so emit_levels stops (or
     // resumes) emitting on the next audio callback.
-    crate::overlay::update_overlay_enabled_cache(parsed != OverlayStyle::None);
+    crate::dictation::overlay::update_overlay_enabled_cache(parsed != OverlayStyle::None);
 
     // Reposition in case the window needs to re-center for the new style.
     crate::utils::update_overlay_position(&app);
@@ -849,7 +850,7 @@ pub fn change_autostart_setting(app: AppHandle, enabled: bool) -> Result<(), Str
 pub fn change_update_checks_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     if settings::update_checks_forced_disabled() {
         return Err(
-            "Update checks are disabled by system configuration (HANDY_DISABLE_UPDATER)".into(),
+            "Update checks are disabled by system configuration (AIRLOCK_DISABLE_UPDATER)".into(),
         );
     }
 
@@ -1017,7 +1018,7 @@ pub fn change_paste_method_setting(app: AppHandle, method: String) -> Result<(),
 pub fn get_available_typing_tools() -> Vec<String> {
     #[cfg(target_os = "linux")]
     {
-        crate::clipboard::get_available_typing_tools()
+        crate::dictation::clipboard::get_available_typing_tools()
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -1125,7 +1126,7 @@ pub fn change_post_process_enabled_setting(app: AppHandle, enabled: bool) -> Res
         }
     }
 
-    crate::secure_input::reconcile_fallback(&app);
+    crate::dictation::secure_input::reconcile_fallback(&app);
     Ok(())
 }
 
@@ -1567,7 +1568,7 @@ mod tests {
             "printscreen",
         ] {
             assert!(key.parse::<Shortcut>().is_ok(), "Tauri rejected {key}");
-            assert!(key.parse::<Hotkey>().is_ok(), "HandyKeys rejected {key}");
+            assert!(key.parse::<Hotkey>().is_ok(), "GlobalKeys rejected {key}");
         }
     }
 }

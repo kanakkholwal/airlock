@@ -1,5 +1,5 @@
-use crate::audio_feedback;
 use crate::audio_toolkit::audio::list_output_devices;
+use crate::dictation::audio_feedback;
 use crate::managers::audio::{AudioRecordingManager, MicrophoneMode};
 use crate::settings::{get_settings, write_settings};
 use log::warn;

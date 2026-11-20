@@ -1,0 +1,13 @@
+pub(crate) mod actions;
+pub(crate) mod audio_feedback;
+pub(crate) mod chinese_script;
+pub(crate) mod clipboard;
+pub(crate) mod input;
+pub(crate) mod overlay;
+pub(crate) mod paste_tx;
+#[cfg(target_os = "linux")]
+pub(crate) mod primary_selection;
+pub(crate) mod secure_input;
+pub(crate) mod shortcut;
+pub(crate) mod transcription_coordinator;
+pub(crate) mod transcription_hook;

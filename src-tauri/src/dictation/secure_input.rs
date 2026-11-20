@@ -470,7 +470,7 @@ mod imp {
             && app
                 .try_state::<crate::commands::ShortcutsInitialized>()
                 .is_some()
-            && settings.keyboard_implementation == KeyboardImplementation::HandyKeys;
+            && settings.keyboard_implementation == KeyboardImplementation::GlobalKeys;
 
         let mut next = FallbackState::default();
         let mut immune = 0usize;
@@ -510,7 +510,9 @@ mod imp {
             );
         }
         for binding in stale {
-            if let Err(e) = crate::shortcut::tauri_impl::unregister_shortcut(app, binding.clone()) {
+            if let Err(e) =
+                crate::dictation::shortcut::tauri_impl::unregister_shortcut(app, binding.clone())
+            {
                 warn!(
                     "SecureInput fallback: failed to unregister '{}': {}",
                     binding.current_binding, e
@@ -533,7 +535,7 @@ mod imp {
                 continue;
             }
 
-            match crate::shortcut::tauri_impl::register_shortcut(app, shadow.clone()) {
+            match crate::dictation::shortcut::tauri_impl::register_shortcut(app, shadow.clone()) {
                 Ok(()) => {
                     info!(
                         "SecureInput fallback: '{}' registered via Carbon as '{}'{}",

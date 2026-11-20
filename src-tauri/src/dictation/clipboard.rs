@@ -1,4 +1,4 @@
-use crate::input::{self, EnigoState};
+use crate::dictation::input::{self, EnigoState};
 #[cfg(target_os = "linux")]
 use crate::settings::TypingTool;
 use crate::settings::{get_settings, AppSettings, AutoSubmitKey, ClipboardHandling, PasteMethod};
@@ -94,8 +94,8 @@ fn paste_via_clipboard(
     // reads PRIMARY, and writing it replaces the user's highlighted text.
     #[cfg(target_os = "linux")]
     let saved_primary = if *paste_method == PasteMethod::ShiftInsert {
-        let saved = crate::primary_selection::read();
-        match crate::primary_selection::write(text) {
+        let saved = crate::dictation::primary_selection::read();
+        match crate::dictation::primary_selection::write(text) {
             Ok(()) => Some(saved),
             Err(e) => {
                 log::warn!("Could not put the transcript on the primary selection: {e}");
@@ -110,7 +110,7 @@ fn paste_via_clipboard(
     if let Err(e) = write_text_to_clipboard(app_handle, text) {
         #[cfg(target_os = "linux")]
         if let Some(saved) = saved_primary {
-            crate::primary_selection::restore(saved);
+            crate::dictation::primary_selection::restore(saved);
         }
         return Err(e);
     }
@@ -159,7 +159,7 @@ fn paste_via_clipboard(
         }
         #[cfg(target_os = "linux")]
         if let Some(saved) = saved_primary {
-            crate::primary_selection::restore(saved);
+            crate::dictation::primary_selection::restore(saved);
         }
     })
 }
@@ -882,7 +882,7 @@ fn should_send_auto_submit(auto_submit: bool, paste_method: PasteMethod) -> bool
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PasteOutcome {
     Pasted,
-    /// The focused window takes no input from Handy, so nothing arrived.
+    /// The focused window takes no input from Airlock, so nothing arrived.
     Blocked,
 }
 
@@ -968,7 +968,7 @@ fn paste_as_configured(
                     settings.clipboard_handling,
                 );
                 let reliable_result = with_enigo(&app_handle, move |enigo| {
-                    crate::paste_tx::try_reliable_paste(
+                    crate::dictation::paste_tx::try_reliable_paste(
                         &text,
                         &app,
                         &paste_method,

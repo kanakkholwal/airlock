@@ -3,7 +3,8 @@ use crate::audio_toolkit::{
     apply_custom_words, detect_output_language, normalize_transcription_output,
     remove_filler_words, OutputLanguageEvidence,
 };
-use crate::chinese_script::{chinese_variety_for_text, convert_chinese_script};
+use crate::dictation::chinese_script::{chinese_variety_for_text, convert_chinese_script};
+use crate::dictation::overlay;
 use crate::engine_supervisor::{
     CancelMark, DeviceInfo, DeviceSelector, EngineError, EngineSupervisor, LoadSpec, LoadedInfo,
     Unloading,
@@ -15,7 +16,6 @@ use crate::language_detection::{
 use crate::managers::audio::{create_smoothed_detector, AudioRecordingManager};
 use crate::managers::model::ModelManager;
 use crate::notices::{self, Notice, NoticeCode, NoticeSource};
-use crate::overlay;
 use crate::settings::{
     get_settings, AppSettings, ChineseScript, ModelUnloadTimeout, TranscribeAcceleratorSetting,
 };
@@ -275,7 +275,7 @@ pub struct TranscriptionManager {
     /// True while a background job is queued or running. It holds the model,
     /// so one transcript is never written by two models.
     job_active: Arc<AtomicBool>,
-    /// Handy's spoken-language detector, loaded in this process on first
+    /// Airlock's spoken-language detector, loaded in this process on first
     /// use and unloaded with the model.
     language_detector: Arc<LanguageDetector>,
 }
@@ -998,9 +998,9 @@ impl TranscriptionManager {
         live: Option<RunOutcome>,
     ) -> Result<Transcription> {
         #[cfg(debug_assertions)]
-        if std::env::var("HANDY_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
+        if std::env::var("AIRLOCK_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
             return Err(anyhow::anyhow!(
-                "Simulated transcription failure (HANDY_FORCE_TRANSCRIPTION_FAILURE)"
+                "Simulated transcription failure (AIRLOCK_FORCE_TRANSCRIPTION_FAILURE)"
             ));
         }
 
@@ -1549,7 +1549,7 @@ fn real_time_factor(audio_secs: f64, compute_secs: f64) -> f64 {
     }
 }
 
-/// Resolve how confidently Handy knows the language of the text produced by a
+/// Resolve how confidently Airlock knows the language of the text produced by a
 /// transcription run. The UI language is deliberately not part of this
 /// decision.
 fn resolve_output_language_evidence(
@@ -1890,7 +1890,7 @@ pub fn describe_compute_devices(tm: &TranscriptionManager) -> Result<Vec<String>
         .collect())
 }
 
-/// Map Handy's whisper accelerator setting to a transcribe-cpp [`Backend`].
+/// Map Airlock's whisper accelerator setting to a transcribe-cpp [`Backend`].
 ///
 /// `Auto` lets the library pick the best device (with CPU fallback), while
 /// `Cpu` forces strict CPU. `Gpu` only remains as the companion setting for an

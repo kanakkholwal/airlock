@@ -1,4 +1,4 @@
-use crate::actions::ACTION_MAP;
+use crate::dictation::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
 use crate::settings::ShortcutActivation;
 use log::{debug, error, warn};

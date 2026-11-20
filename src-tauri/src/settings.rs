@@ -232,8 +232,8 @@ pub enum RecordingRetentionPeriod {
 #[serde(rename_all = "snake_case")]
 pub enum KeyboardImplementation {
     Tauri,
-    HandyKeys,
-    /// No built-in global shortcuts; trigger Handy via CLI flags or signals
+    GlobalKeys,
+    /// No built-in global shortcuts; trigger Airlock via CLI flags or signals
     /// (e.g. from a Wayland compositor keybinding).
     None,
 }
@@ -243,7 +243,7 @@ impl Default for KeyboardImplementation {
         #[cfg(target_os = "linux")]
         return KeyboardImplementation::Tauri;
         #[cfg(not(target_os = "linux"))]
-        return KeyboardImplementation::HandyKeys;
+        return KeyboardImplementation::GlobalKeys;
     }
 }
 
@@ -311,7 +311,7 @@ impl SoundTheme {
 }
 
 /// UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
-/// and `Dark` force one of the two palettes Handy already ships.
+/// and `Dark` force one of the two palettes Airlock already ships.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum Theme {
@@ -349,7 +349,7 @@ pub enum VadBackend {
     Earshot,
 }
 
-/// When Handy's spoken-language detector picks the language for Auto.
+/// When Airlock's spoken-language detector picks the language for Auto.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum LanguageDetectionMode {
@@ -1289,7 +1289,7 @@ fn apply_settings_migrations(
     {
         let hong_kong = settings.spoken_languages.iter().any(|l| l == "yue")
             || os_languages().iter().find_map(|tag| {
-                match crate::chinese_script::chinese_script_for_locale(tag) {
+                match crate::dictation::chinese_script::chinese_script_for_locale(tag) {
                     Some(s @ (ChineseScript::TraditionalTw | ChineseScript::TraditionalHk)) => {
                         Some(s)
                     }
@@ -1386,7 +1386,8 @@ fn guessed_spoken_languages(
         .is_some_and(|script| script != "as_transcribed");
     let intent = settings.selected_language.as_str();
     // A script says Chinese, unless the language they picked already does.
-    let picked_chinese = crate::chinese_script::chinese_script_for_locale(intent).is_some();
+    let picked_chinese =
+        crate::dictation::chinese_script::chinese_script_for_locale(intent).is_some();
     let tags = [
         (intent != "auto").then_some(intent),
         (picked_script && !picked_chinese).then_some("zh"),
@@ -1466,18 +1467,19 @@ fn self_update_possible() -> bool {
 }
 
 /// Update checks are forced off (without touching the persisted setting) when
-/// `HANDY_DISABLE_UPDATER` is set — e.g. by the Nix package, since self-update
+/// `AIRLOCK_DISABLE_UPDATER` is set — e.g. by the Nix package, since self-update
 /// can't work against an immutable /nix/store install — or when this build
 /// cannot install its own update (see `linux_self_update_possible`).
 pub fn update_checks_forced_disabled() -> bool {
     use std::sync::OnceLock;
     static IS_UPDATER_DISABLED: OnceLock<bool> = OnceLock::new();
-    *IS_UPDATER_DISABLED
-        .get_or_init(|| utils::env_flag_enabled("HANDY_DISABLE_UPDATER") || !self_update_possible())
+    *IS_UPDATER_DISABLED.get_or_init(|| {
+        utils::env_flag_enabled("AIRLOCK_DISABLE_UPDATER") || !self_update_possible()
+    })
 }
 
 /// Effective updater state: the user's stored preference, overridden to `false`
-/// while `HANDY_DISABLE_UPDATER` is set. Callers deciding whether to actually
+/// while `AIRLOCK_DISABLE_UPDATER` is set. Callers deciding whether to actually
 /// check for updates must use this rather than reading `update_checks_enabled`
 /// directly, so the forced-off state never leaks into the persisted setting.
 pub fn update_checks_effectively_enabled(settings: &AppSettings) -> bool {
@@ -1650,7 +1652,7 @@ mod tests {
             "app_language": "en",
             "experimental_enabled": false,
             "lazy_stream_close": false,
-            "keyboard_implementation": "handy_keys",
+            "keyboard_implementation": "global_keys",
             "show_tray_icon": true,
             "paste_delay_ms": 60,
             "typing_tool": "auto",
