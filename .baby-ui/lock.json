@@ -652,9 +652,10 @@
 			"name": "rolling-digits",
 			"type": "registry:ui",
 			"framework": "svelte",
-			"installedAt": "2026-11-20T17:54:12.229Z",
+			"installedAt": "2026-11-20T18:38:34.185Z",
 			"itemHash": "c343e4b603bfc73e392fc2733d0deca72fb592903ec8a712a9ccd7858b3493b3",
 			"files": {
+				"src/lib/cn.ts": "0fca478853f3fc4310e40ebff727a53da7ec677938f4e3e0d5ecaa62e936a199",
 				"src/lib/components/text/rolling-digits/format.ts": "55681ad1872ac357bc325bb3f84894064e508568d50e0585f8c3ff1e98a21446",
 				"src/lib/components/text/rolling-digits/index.ts": "9aada21691b084bfb954a3d47500c6384b97019dbf98cdc838b7f358a3c514fd",
 				"src/lib/components/text/rolling-digits/rolling-digit.svelte": "f559e538d36cda36f4f22ab6f803b8e0ac3a545293e50852b85a1aed948d46bf",
@@ -905,6 +906,29 @@
 				"tailwind-variants"
 			],
 			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
+		"https://baby-ui.pages.dev/svelte/r/textarea.json": {
+			"name": "textarea",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-20T18:38:34.183Z",
+			"itemHash": "093f621eb934a216ae75d691cf88a5c46216d95e81d6755dfca1c3527a5da86f",
+			"files": {
+				"src/lib/components/ui/textarea/index.ts": "e97b2c85de576367240320b4b8652ecb026f7ced1afe877a2e43f5b734d8915a",
+				"src/lib/components/ui/textarea/textarea-count.svelte": "3251cd7a0da7ef1d8cd9425f5f78ce15d6b371fbcee8e31f05bc35176b5aecc5",
+				"src/lib/components/ui/textarea/textarea.svelte": "7f25c22fd3330082d1c96951b8309096f32ee9b350f166f7a5f59c079bf6ca04",
+				"src/lib/components/ui/textarea/variants.ts": "8345f3fc0645b6cfe9b5006cf35016031bb72110400ceae18bb11303fbe3bce7",
+				"src/lib/control.ts": "c549ced4d9eb20af1d1b0d73d8100916e435948150485b0a944e358ffaf7921b"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/rolling-digits.json",
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},

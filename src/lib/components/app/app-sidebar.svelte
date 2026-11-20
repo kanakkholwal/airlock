@@ -297,7 +297,7 @@
     title={collapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
     tabindex="-1"
     onclick={toggle}
-    class="absolute inset-y-0 right-0 z-10 w-2 outline-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-transparent after:transition-colors after:duration-100 hover:after:bg-foreground/20 {collapsed ? 'cursor-e-resize' : 'cursor-w-resize'}"
+    class="absolute inset-y-0 right-0 z-10 w-2 outline-none focus-visible:ring-2 focus-visible:ring-ring after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-transparent after:transition-colors after:duration-100 hover:after:bg-foreground/20 {collapsed ? 'cursor-e-resize' : 'cursor-w-resize'}"
   ></button>
 </aside>
 

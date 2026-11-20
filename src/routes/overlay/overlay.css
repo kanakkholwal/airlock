@@ -241,7 +241,7 @@
 .stext-cap {
   /* Vertical counterpart of the .scard clamp: show fewer lines rather than clip.
      20px = cap padding (12) + card borders (2) + 6px slack for zoom rounding. */
-  max-height: min(var(--ov-cap-max-h), calc(100vh - var(--ov-base-h) - 20px));
+  max-height: min(var(--ov-cap-max-h), calc(100dvh - var(--ov-base-h) - 20px));
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;

@@ -1,4 +1,4 @@
-use super::engine::{Backend, EngineState, LlmEngine};
+use super::engine::{Backend, EngineState, LlmEngine, Residency};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use specta::Type;
@@ -104,6 +104,8 @@ pub async fn llm_start_model(
     let models = super::models::models_dir(&app)?;
     let (path, projector, context) =
         super::models::resolve(&models, &id).ok_or("Model is not downloaded yet")?;
+    super::paths::remember_model(&app, &id);
+    engine.configure(super::paths::residency(&app));
     engine
         .inner()
         .start(
@@ -207,6 +209,7 @@ pub async fn chat_stream(
     on_event: Channel<ChatEvent>,
 ) -> Result<(), String> {
     let (port, _, key) = ready_port(&engine).await?;
+    let _busy = engine.inner().begin();
     cancel.0.store(false, Ordering::SeqCst);
     let body = match to_json_messages(&app, &messages) {
         Ok(m) => json!({ "messages": m, "stream": true }),
@@ -247,6 +250,7 @@ pub async fn speed_test_chat(
     engine: State<'_, Arc<LlmEngine>>,
 ) -> Result<Vec<SpeedResult>, String> {
     let (port, backend, key) = ready_port(&engine).await?;
+    let _busy = engine.inner().begin();
     let body = json!({
         "messages": [{ "role": "user", "content": "Write a short story about a lighthouse." }],
         "max_tokens": 128,
@@ -275,6 +279,7 @@ pub async fn chat_title(
     first_reply: String,
 ) -> Result<String, String> {
     let (port, _, key) = ready_port(&engine).await?;
+    let _busy = engine.inner().begin();
     let clip = |s: &str, n: usize| s.chars().take(n).collect::<String>();
     let body = json!({
         "messages": [
@@ -325,7 +330,40 @@ extra"
     }
 }
 
+#[tauri::command]
+#[specta::specta]
+pub fn llm_get_residency(app: AppHandle) -> Residency {
+    super::paths::residency(&app)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn llm_set_residency(
+    app: AppHandle,
+    engine: State<'_, Arc<LlmEngine>>,
+    idle_minutes: u32,
+    unload_when_hidden: bool,
+) -> Result<(), String> {
+    let r = Residency {
+        idle_minutes: idle_minutes.min(24 * 60),
+        unload_when_hidden,
+    };
+    super::paths::save_residency(&app, r)?;
+    engine.configure(r);
+    Ok(())
+}
+
+/// The window reports when it is hidden or shown, so the model can unload sooner while only
+/// dictation is in use.
+#[tauri::command]
+#[specta::specta]
+pub fn llm_set_window_hidden(engine: State<'_, Arc<LlmEngine>>, hidden: bool) {
+    engine.set_hidden(hidden);
+}
+
 pub fn manage(app: &AppHandle) {
-    app.manage(Arc::new(LlmEngine::default()));
+    let engine = Arc::new(LlmEngine::default());
+    engine.configure(super::paths::residency(app));
+    app.manage(engine);
     app.manage(ChatCancel(AtomicBool::new(false)));
 }

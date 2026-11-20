@@ -724,12 +724,25 @@ fn default_show_tray_icon() -> bool {
     true
 }
 
+/// Cleanup runs on the loaded chat model by default, so dictation stays offline.
+pub const AIRLOCK_LOCAL_PROVIDER_ID: &str = "airlock_local";
+
 fn default_post_process_provider_id() -> String {
-    "openai".to_string()
+    AIRLOCK_LOCAL_PROVIDER_ID.to_string()
 }
 
 fn default_post_process_providers() -> Vec<PostProcessProvider> {
     let mut providers = vec![
+        PostProcessProvider {
+            id: AIRLOCK_LOCAL_PROVIDER_ID.to_string(),
+            label: "This computer (local model)".to_string(),
+            // Replaced with the running engine's address at call time.
+            base_url: "http://127.0.0.1".to_string(),
+            allow_base_url_edit: false,
+            models_endpoint: None,
+            supports_structured_output: false,
+            api_format: PostProcessApiFormat::OpenAi,
+        },
         PostProcessProvider {
             id: "openai".to_string(),
             label: "OpenAI".to_string(),
@@ -1049,8 +1062,10 @@ pub fn get_default_settings() -> AppSettings {
         post_process_api_keys: default_post_process_api_keys(),
         post_process_models: default_post_process_models(),
         post_process_prompts: default_post_process_prompts(),
-        post_process_selected_prompt_id: None,
-        mute_while_recording: false,
+        // The one built-in cleanup prompt, so turning cleanup on needs no further setup.
+        post_process_selected_prompt_id: Some("default_improve_transcriptions".to_string()),
+        // Decision (product): on by default, so music or a video never bleeds into dictation.
+        mute_while_recording: true,
         append_trailing_space: false,
         app_language: default_app_language(),
         theme: default_theme(),

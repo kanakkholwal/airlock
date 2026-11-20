@@ -223,13 +223,14 @@ enum PostProcessOutcome {
 async fn post_process_transcription(
     settings: &AppSettings,
     transcription: &str,
+    local: Option<(String, String)>,
 ) -> PostProcessOutcome {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
         return PostProcessOutcome::Skipped;
     }
 
-    let provider = match settings.active_post_process_provider().cloned() {
+    let mut provider = match settings.active_post_process_provider().cloned() {
         Some(provider) => provider,
         None => {
             debug!("Post-processing enabled but no provider is selected");
@@ -237,11 +238,29 @@ async fn post_process_transcription(
         }
     };
 
-    let model = settings
-        .post_process_models
-        .get(&provider.id)
-        .cloned()
-        .unwrap_or_default();
+    // The local provider has no fixed address: it is the loaded chat model, so its URL and
+    // key come from the running engine. No model loaded means the text is pasted as is.
+    let is_local = provider.id == crate::settings::AIRLOCK_LOCAL_PROVIDER_ID;
+    let mut local_key = None;
+    if is_local {
+        let Some((base_url, key)) = local else {
+            debug!("Post-processing skipped because no local model is loaded");
+            return PostProcessOutcome::Failed;
+        };
+        provider.base_url = base_url;
+        local_key = Some(key);
+    }
+
+    let model = if is_local {
+        // llama-server serves one model and ignores the name.
+        "local".to_string()
+    } else {
+        settings
+            .post_process_models
+            .get(&provider.id)
+            .cloned()
+            .unwrap_or_default()
+    };
 
     if model.trim().is_empty() {
         debug!(
@@ -284,16 +303,18 @@ async fn post_process_transcription(
         provider.id, model
     );
 
-    let api_key = settings
-        .post_process_api_keys
-        .get(&provider.id)
-        .cloned()
-        .unwrap_or_default();
+    let api_key = local_key.unwrap_or_else(|| {
+        settings
+            .post_process_api_keys
+            .get(&provider.id)
+            .cloned()
+            .unwrap_or_default()
+    });
 
     // Ask these providers to skip reasoning/thinking — post-processing rarely
     // benefits from it and it adds seconds of latency. llm_client picks the
     // field the endpoint understands and retries without it if rejected.
-    let disable_reasoning = matches!(provider.id.as_str(), "custom" | "openrouter");
+    let disable_reasoning = matches!(provider.id.as_str(), "custom" | "openrouter") || is_local;
 
     if provider.supports_structured_output {
         debug!("Using structured outputs for provider '{}'", provider.id);
@@ -457,6 +478,18 @@ pub(crate) struct ProcessedTranscription {
     pub post_process_failed: bool,
 }
 
+/// The running local model's address and key, only when cleanup is set to use it.
+async fn local_endpoint(app: &AppHandle, settings: &AppSettings) -> Option<(String, String)> {
+    let wants_local = settings
+        .active_post_process_provider()
+        .is_some_and(|p| p.id == crate::settings::AIRLOCK_LOCAL_PROVIDER_ID);
+    if !wants_local {
+        return None;
+    }
+    let engine = app.try_state::<std::sync::Arc<crate::llm::engine::LlmEngine>>()?;
+    engine.endpoint().await
+}
+
 pub(crate) async fn process_transcription_output(
     app: &AppHandle,
     transcription: &str,
@@ -472,7 +505,11 @@ pub(crate) async fn process_transcription_output(
         // A reply that's blank once cleaned is no better than none.
         let outcome = match tokio::time::timeout(
             POST_PROCESS_TIMEOUT,
-            post_process_transcription(&settings, &final_text),
+            post_process_transcription(
+                &settings,
+                &final_text,
+                local_endpoint(app, &settings).await,
+            ),
         )
         .await
         {
@@ -1134,6 +1171,8 @@ mod tests {
     /// Settings that run unstructured post-processing against `base_url`.
     fn post_process_settings(base_url: &str) -> AppSettings {
         let mut settings = get_default_settings();
+        // The default is the local provider, which has no fixed address; these tests use a mock.
+        settings.post_process_provider_id = "openai".to_string();
         let provider = settings
             .post_process_providers
             .iter_mut()
@@ -1169,7 +1208,17 @@ mod tests {
     }
 
     fn run_post_process(settings: &AppSettings, transcription: &str) -> PostProcessOutcome {
-        tauri::async_runtime::block_on(post_process_transcription(settings, transcription))
+        tauri::async_runtime::block_on(post_process_transcription(settings, transcription, None))
+    }
+
+    #[test]
+    fn the_local_provider_fails_safely_without_a_loaded_model() {
+        let mut settings = post_process_settings("http://127.0.0.1:1");
+        settings.post_process_provider_id = crate::settings::AIRLOCK_LOCAL_PROVIDER_ID.to_string();
+        assert_eq!(
+            run_post_process(&settings, "hello there"),
+            PostProcessOutcome::Failed
+        );
     }
 
     #[test]

@@ -9,6 +9,14 @@ use tauri::AppHandle;
 struct Stored {
     models_dir: Option<PathBuf>,
     engines_dir: Option<PathBuf>,
+    /// The model to load again on launch and on the first message.
+    #[serde(default)]
+    last_model: Option<String>,
+    /// None means the default (5 minutes).
+    #[serde(default)]
+    idle_minutes: Option<u32>,
+    #[serde(default)]
+    unload_when_hidden: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -42,6 +50,37 @@ fn load(app: &AppHandle) -> Stored {
 fn save(app: &AppHandle, stored: &Stored) -> Result<(), String> {
     let json = serde_json::to_string_pretty(stored).map_err(|e| e.to_string())?;
     std::fs::write(file(app)?, json).map_err(|e| e.to_string())
+}
+
+pub fn residency(app: &AppHandle) -> super::engine::Residency {
+    let stored = load(app);
+    let default = super::engine::Residency::default();
+    super::engine::Residency {
+        idle_minutes: stored.idle_minutes.unwrap_or(default.idle_minutes),
+        unload_when_hidden: stored
+            .unload_when_hidden
+            .unwrap_or(default.unload_when_hidden),
+    }
+}
+
+pub fn save_residency(app: &AppHandle, r: super::engine::Residency) -> Result<(), String> {
+    let mut stored = load(app);
+    stored.idle_minutes = Some(r.idle_minutes);
+    stored.unload_when_hidden = Some(r.unload_when_hidden);
+    save(app, &stored)
+}
+
+pub fn last_model(app: &AppHandle) -> Option<String> {
+    load(app).last_model
+}
+
+/// Best effort: failing to remember a model must never stop it from loading.
+pub fn remember_model(app: &AppHandle, id: &str) {
+    let mut stored = load(app);
+    if stored.last_model.as_deref() != Some(id) {
+        stored.last_model = Some(id.to_string());
+        let _ = save(app, &stored);
+    }
 }
 
 fn default_models(app: &AppHandle) -> Result<PathBuf, String> {
@@ -103,6 +142,12 @@ fn describe(app: &AppHandle) -> Result<StoragePaths, String> {
         models_custom: stored.models_dir.is_some(),
         engines_custom: stored.engines_dir.is_some(),
     })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn llm_last_model(app: AppHandle) -> Option<String> {
+    last_model(&app)
 }
 
 #[tauri::command]

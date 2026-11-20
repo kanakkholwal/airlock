@@ -77,6 +77,8 @@ class ChatSession {
   listLoaded = $state(false);
   /** True while a saved conversation is being read from disk. */
   opening = $state(false);
+  /** Set by the engine store: asks it to load a model when a message needs one. */
+  needModel: (() => void) | null = null;
   private nextId = 1;
   private transport: ChatTransport | null = null;
   private abort: AbortController | null = null;
@@ -195,6 +197,7 @@ class ChatSession {
     this.messages.push(msg);
     this.save("user", $state.snapshot(parts), text);
     if (this.engine === "ready") void this.drain();
+    else if (this.engine !== "loading") this.needModel?.();
   }
 
   /** Replaces the last assistant reply with a new one. */

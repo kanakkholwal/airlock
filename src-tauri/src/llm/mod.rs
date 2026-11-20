@@ -4,5 +4,6 @@ pub mod commands;
 pub mod download;
 pub mod engine;
 pub mod engines;
+pub mod hf;
 pub mod models;
 pub mod paths;

@@ -21,9 +21,13 @@ import {
   type EngineState as ChatEngine,
   type Usage,
 } from "./chat.svelte";
+import { pickAutoModel } from "./model-pick";
 import type { SpeedTarget } from "./speed";
 
 const inTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+export type SetupStep = "engine" | "model" | "loading" | "done" | "failed";
+export type SetupState = { step: SetupStep; message?: string };
 
 export type DownloadProgress = {
   phase: "downloading" | "verifying";
@@ -124,7 +128,23 @@ class LlmStore {
 
   /** True once the first catalog and engine lists have arrived. */
   loaded = $state(false);
+  /** Progress of the one-button first-run setup, or null when it is not running. */
+  setup = $state<SetupState | null>(null);
+  private lastModelId: string | null = null;
+  private autoTried = false;
   private started = false;
+
+  /** First run: nothing to run models with yet (no engine, or no model on disk). */
+  get needsSetup() {
+    return this.loaded && inTauri() && (!this.engines.some((e) => e.installed) || this.downloaded.length === 0);
+  }
+
+  /** The engine and model first-run setup would fetch: the recommended ones. */
+  get setupPlan() {
+    const engine = this.engines.find((e) => e.recommended) ?? this.engines[0];
+    const model = this.models.find((m) => m.recommended) ?? this.models[0];
+    return engine && model ? { engine, model } : null;
+  }
 
   async init() {
     if (this.started) return;
@@ -137,7 +157,62 @@ class LlmStore {
     const status = await commands.llmStatus();
     if (status.status === "ok") this.setEngine(status.data);
     await Promise.all([this.refresh(), this.refreshEngines(), this.refreshPaths(), chat.init()]);
+    const last = await commands.llmLastModel();
+    this.lastModelId = last ?? null;
+    chat.needModel = () => void this.ensureLoaded();
     this.loaded = true;
+    // Decision (architecture): nothing loads at launch. Chat and dictation share one small GPU,
+    // so the chat model loads on the first message instead (see ensureLoaded and Residency).
+  }
+
+  /** The model to load without asking: the last used, else the recommended, else any on disk. */
+  private autoTarget() {
+    return pickAutoModel(this.downloaded, this.lastModelId);
+  }
+
+  /** Loads a model if none is loaded and everything needed is already on disk. */
+  async ensureLoaded() {
+    if (this.engine.state === "ready" || this.engine.state === "loading") return;
+    if (!this.engines.some((e) => e.installed)) return;
+    const target = this.autoTarget();
+    if (!target) return;
+    await this.switchTo(target.id);
+  }
+
+  /**
+   * First-run setup in one go: install the recommended engine, download the recommended model,
+   * load it. Each step is skipped if it is already done, so retrying resumes where it stopped.
+   */
+  async runSetup() {
+    const plan = this.setupPlan;
+    if (!plan) {
+      this.setup = { step: "failed", message: "Airlock has no engine or model for this system." };
+      return;
+    }
+    this.error = null;
+    const fail = (message: string) => {
+      this.setup = { step: "failed", message };
+    };
+    this.setup = { step: "engine" };
+    if (!plan.engine.installed) {
+      await this.installEngine(plan.engine.backend);
+      if (!this.engines.find((e) => e.backend === plan.engine.backend)?.installed) {
+        return fail(this.error ?? "The engine could not be installed.");
+      }
+    }
+    this.setup = { step: "model" };
+    if (plan.model.file.state !== "downloaded") {
+      await this.download(plan.model.id);
+      if (this.models.find((m) => m.id === plan.model.id)?.file.state !== "downloaded") {
+        return fail(this.error ?? "The model could not be downloaded.");
+      }
+    }
+    this.setup = { step: "loading" };
+    await this.switchTo(plan.model.id);
+    if (this.error) return fail(this.error);
+    this.setup = { step: "done" };
+    // Leave the finished steps visible for a moment before the card goes away.
+    setTimeout(() => (this.setup = null), 1500);
   }
 
   private setEngine(state: EngineState) {

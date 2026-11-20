@@ -47,6 +47,9 @@ importers:
       tailwind-variants:
         specifier: ^4.0.2
         version: 4.0.2
+      tauri-plugin-macos-permissions-api:
+        specifier: ^2.3.0
+        version: 2.3.0
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^4.0.1
@@ -814,6 +817,9 @@ packages:
     resolution: {integrity: sha512-NHFiWnAbMJxNNpBwiO7jJVGDuqMxT9/oV8v57RR+fgBQShkJil5inGD8/xWy0hjLyHQyX1tu27QANhlz3KBqCg==}
     engines: {node: '>=6'}
 
+  tauri-plugin-macos-permissions-api@2.3.0:
+    resolution: {integrity: sha512-pZp0jmDySysBqrGueknd1a7Rr4XEO9aXpMv9TNrT2PDHP0MSH20njieOagsFYJ5MCVb8A+wcaK0cIkjUC2dOww==}
+
   tinybench@6.2.4:
     resolution: {integrity: sha512-SQ52jEncXxbMCzJuY2A/jGIbbAu6NYsBWW7grz2pNE+EnzQdoGaoBfpk4qC/opE7qiUcGmGgaGIz5EoHdS1O9w==}
     engines: {node: '>=20.0.0'}
@@ -1523,6 +1529,10 @@ snapshots:
   tailwindcss@4.3.5: {}
 
   tapable@2.3.4: {}
+
+  tauri-plugin-macos-permissions-api@2.3.0:
+    dependencies:
+      '@tauri-apps/api': 2.12.5
 
   tinybench@6.2.4: {}
 

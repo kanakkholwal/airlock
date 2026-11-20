@@ -3,6 +3,11 @@
   import { open as pickFile } from "@tauri-apps/plugin-dialog";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import type { Backend, MemoryCheck, ModelStatus } from "../../bindings";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
+  import ExploreModels from "#lib/components/app/explore-models.svelte";
+  import SpeechModels from "#lib/components/app/speech-models.svelte";
+  import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
   import { CpuBoltIcon, DangerTriangleIcon, MonitorIcon } from "@solar-icons/svelte/linear";
   import { inTauri } from "#lib/env.js";
   import CardSkeleton from "#lib/components/app/card-skeleton.svelte";
@@ -14,6 +19,10 @@
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Progress } from "#lib/components/ui/progress/index.js";
+
+  // The tab lives in the URL, so other screens can link straight to Speech or Explore.
+  const tab = $derived(page.url.searchParams.get("tab") ?? "chat");
+  const setTab = (v: string) => void goto(`?tab=${v}`, { replace: true });
 
   let memory = $state<Record<string, MemoryCheck | null>>({});
   // Which delete or remove is waiting for a second click (multi-GB files are not recoverable).
@@ -65,12 +74,30 @@
 
 <PageScroll>
 <main class="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-8 px-6 py-16">
-  <PageHeader title="Models" description="Weights download on your request and run on this machine." />
+  <PageHeader title="Models" description="What Airlock can run on this computer. Everything stays here." />
 
   {#if llm.error}
     <Alert variant="destructive" dismissible><AlertDescription>{llm.error}</AlertDescription></Alert>
   {/if}
 
+  <Tabs bind:value={() => tab, setTab} variant="segment" class="self-center">
+    <TabsList>
+      <TabsTrigger value="chat">Chat</TabsTrigger>
+      <TabsTrigger value="speech">Speech</TabsTrigger>
+      <TabsTrigger value="explore">Explore</TabsTrigger>
+    </TabsList>
+  </Tabs>
+
+  {#if tab === "speech"}
+    <section class="flex flex-col gap-3">
+      <p class="px-1 text-sm text-muted-foreground text-pretty">
+        Speech models turn your voice into text for dictation. They run on this computer.
+      </p>
+      <SpeechModels />
+    </section>
+  {:else if tab === "explore"}
+    <ExploreModels />
+  {:else}
   {#if !inTauri()}
     <StateView
       icon={MonitorIcon}
@@ -261,5 +288,6 @@
   <p class="px-1 text-sm text-muted-foreground text-pretty">
     Where files are stored is in <a class="underline underline-offset-2" href="/settings">Settings</a>.
   </p>
+  {/if}
 </main>
 </PageScroll>

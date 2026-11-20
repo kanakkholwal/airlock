@@ -37,7 +37,7 @@
     return {
       label: "No model loaded",
       variant: "secondary" as const,
-      hint: models.length > 0 ? "Pick a model below." : hasEngine ? "Download a model in Models." : "Install an engine in Models.",
+      hint: models.length > 0 ? "It loads when you send a message." : hasEngine ? "Download a model in Models." : "Install an engine in Models.",
     };
   });
 
@@ -126,6 +126,11 @@
     {/if}
     {#if chat.queuedCount > 0}
       <span>{chat.queuedCount} waiting for the model</span>
+    {/if}
+    {#if chat.engine === "unavailable" && models.length > 0 && hasEngine}
+      <Button size="sm" variant="ghost" onclick={() => llm.ensureLoaded()}>Load now</Button>
+    {:else if chat.engine === "ready"}
+      <Button size="sm" variant="ghost" onclick={() => llm.stop()}>Unload to free memory</Button>
     {/if}
   </div>
 

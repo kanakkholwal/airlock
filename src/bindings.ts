@@ -712,6 +712,58 @@ async llmStartModel(id: string, backend: Backend) : Promise<Result<null, string>
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Searches GGUF models. `task` is `chat` or `vision`; `sort` is one of the Hub's sort keys.
+ */
+async llmHfSearch(query: string, task: string, sort: string) : Promise<Result<HfModel[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_hf_search", { query, task, sort }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async llmHfFiles(repo: string) : Promise<Result<HfRepo, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_hf_files", { repo }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Downloads one GGUF (and optionally its vision projector) into the imported-models folder,
+ * verified against the checksums Hugging Face publishes, and records where it came from.
+ */
+async llmHfDownload(repo: string, filename: string, projector: string | null, onEvent: TAURI_CHANNEL<DownloadEvent>) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_hf_download", { repo, filename, projector, onEvent }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async llmGetResidency() : Promise<Residency> {
+    return await TAURI_INVOKE("llm_get_residency");
+},
+async llmSetResidency(idleMinutes: number, unloadWhenHidden: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_set_residency", { idleMinutes, unloadWhenHidden }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The window reports when it is hidden or shown, so the model can unload sooner while only
+ * dictation is in use.
+ */
+async llmSetWindowHidden(hidden: boolean) : Promise<void> {
+    await TAURI_INVOKE("llm_set_window_hidden", { hidden });
+},
+async llmLastModel() : Promise<string | null> {
+    return await TAURI_INVOKE("llm_last_model");
+},
 async llmStoragePaths() : Promise<Result<StoragePaths, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("llm_storage_paths") };
@@ -800,6 +852,12 @@ async llmMemoryCheck(id: string) : Promise<Result<MemoryCheck, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Lets Explore rate a download against this machine before it starts.
+ */
+async llmSystemMemory() : Promise<SystemMemory> {
+    return await TAURI_INVOKE("llm_system_memory");
 },
 async llmStop() : Promise<Result<null, string>> {
     try {
@@ -1455,6 +1513,17 @@ export type EngineState = { state: "stopped" } | { state: "loading"; model: stri
 export type EngineStatus = { backend: Backend; label: string; size_bytes: number; installed: boolean; recommended: boolean }
 export type FileState = { state: "not_downloaded" } | { state: "partial"; downloaded: number } | { state: "downloaded" }
 export type GpuDeviceOption = { id: string; name: string; total_vram_mb: number }
+export type HfFile = { name: string; size_bytes: number; 
+/**
+ * True for the vision projector that goes with a vision model.
+ */
+projector: boolean }
+/**
+ * What `llm_hf_search` returns for each repo. `architecture` comes from the GGUF header Hugging
+ * Face indexes, which is what decides whether the engine can run it.
+ */
+export type HfModel = { id: string; downloads: number; likes: number; last_modified: string | null; license: string | null; architecture: string | null; parameters: number | null; context_length: number | null; vision: boolean }
+export type HfRepo = { model: HfModel; files: HfFile[] }
 export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean; 
 /**
  * The name of the file this entry was transcribed from; `None` for a
@@ -1671,6 +1740,16 @@ export type RecordingPhase =
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type RecordingStateEvent = { phase: RecordingPhase }
 /**
+ * When the chat model frees its memory. Decision (architecture): chat and dictation share one
+ * small GPU, so the chat model does not stay resident forever. It loads on the first message
+ * and unloads when idle, and sooner while the window is hidden (when dictation is what runs).
+ */
+export type Residency = { 
+/**
+ * Minutes without use before the model unloads; 0 keeps it loaded.
+ */
+idle_minutes: number; unload_when_hidden: boolean }
+/**
  * A retired ONNX model found on disk.
  */
 export type RetiredModel = { id: string; name: string; size_mb: number; replacement_repo: string }
@@ -1762,6 +1841,7 @@ export type StreamTextEvent = { committed: string; tentative: string }
  * Semantic kind of "working" phase, used to localize the spinner label.
  */
 export type StreamWorkKind = "transcribing" | "polishing"
+export type SystemMemory = { total_bytes: number; free_bytes: number }
 /**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
  * and `Dark` force one of the two palettes Airlock already ships.

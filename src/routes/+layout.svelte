@@ -3,7 +3,12 @@
   import { page } from "$app/state";
   import { onMount } from "svelte";
   import { general } from "#lib/general-settings.svelte.js";
+  import { commands } from "../bindings";
+  import { inTauri } from "#lib/env.js";
   import { llm } from "#lib/llm.svelte.js";
+  import { memory } from "#lib/memory-settings.svelte.js";
+  import { speaker } from "#lib/speak.svelte.js";
+  import { speech } from "#lib/speech.svelte.js";
   import AppHeader from "#lib/components/app/app-header.svelte";
   import AppSidebar from "#lib/components/app/app-sidebar.svelte";
   import { ErrorBoundary } from "#lib/components/ui/error-boundary/index.js";
@@ -25,6 +30,16 @@
     if (!isOverlay) {
       void llm.init();
       void general.load();
+      // The shortcut and paste engine must start with the app, not when a page opens.
+      void speech.init();
+      speaker.init();
+      void memory.load();
+      // Tell the engine when the window is hidden, so the chat model can free its memory sooner.
+      if (inTauri()) {
+        const report = () => void commands.llmSetWindowHidden(document.hidden);
+        document.addEventListener("visibilitychange", report);
+        report();
+      }
     }
   });
 </script>

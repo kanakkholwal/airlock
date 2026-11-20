@@ -83,7 +83,7 @@ fn file_state(dir: &Path, entry: &CatalogEntry) -> FileState {
     }
 }
 
-fn free_disk_bytes(dir: &Path) -> Option<u64> {
+pub(super) fn free_disk_bytes(dir: &Path) -> Option<u64> {
     let dir = dir.canonicalize().ok()?;
     let disks = sysinfo::Disks::new_with_refreshed_list().ok()?;
     disks
@@ -107,17 +107,35 @@ fn imported_models(dir: &Path) -> Vec<ModelStatus> {
     };
     read.flatten()
         .filter(|e| e.path().extension().is_some_and(|x| x == "gguf"))
+        .filter(|e| {
+            !e.file_name()
+                .to_string_lossy()
+                .to_lowercase()
+                .starts_with("mmproj")
+        })
         .map(|e| {
             let name = e.file_name().to_string_lossy().into_owned();
+            // A note written by the Hugging Face download, when there is one.
+            let note: serde_json::Value =
+                std::fs::read_to_string(dir.join("imported").join(format!("{name}.json")))
+                    .ok()
+                    .and_then(|s| serde_json::from_str(&s).ok())
+                    .unwrap_or_default();
+            let repo = note["repo"].as_str();
             ModelStatus {
                 id: format!("{IMPORT_PREFIX}{name}"),
                 name: name.trim_end_matches(".gguf").to_string(),
-                description: "Imported from a file.".into(),
+                description: repo
+                    .map(|r| format!("From huggingface.co/{r}"))
+                    .unwrap_or_else(|| "Imported from a file.".into()),
                 size_bytes: e.metadata().map(|m| m.len()).unwrap_or(0),
-                license: "Unknown, check the source".into(),
-                license_url: None,
+                license: note["license"]
+                    .as_str()
+                    .map(str::to_string)
+                    .unwrap_or_else(|| "Unknown, check the source".into()),
+                license_url: repo.map(|r| format!("https://huggingface.co/{r}")),
                 recommended: false,
-                vision: false,
+                vision: note["projector"].is_string(),
                 imported: true,
                 file: FileState::Downloaded,
             }
@@ -126,6 +144,21 @@ fn imported_models(dir: &Path) -> Vec<ModelStatus> {
 }
 
 /// Resolves a model id to its weights file and optional projector, if fully on disk.
+/// The projector file recorded next to an imported model, if it is on disk.
+fn projector_of(dir: &Path, model_file: &str) -> Option<PathBuf> {
+    let note: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(dir.join("imported").join(format!("{model_file}.json"))).ok()?,
+    )
+    .ok()?;
+    let name = note["projector"].as_str()?;
+    // Same rule as ids: a bare file name, never a path.
+    if Path::new(name).file_name() != Some(std::ffi::OsStr::new(name)) {
+        return None;
+    }
+    let path = dir.join("imported").join(name);
+    path.exists().then_some(path)
+}
+
 pub fn resolve(dir: &Path, id: &str) -> Option<(PathBuf, Option<PathBuf>, u32)> {
     if let Some(name) = id.strip_prefix(IMPORT_PREFIX) {
         // Decision (security): an imported id is a bare file name; anything with a separator or
@@ -134,7 +167,9 @@ pub fn resolve(dir: &Path, id: &str) -> Option<(PathBuf, Option<PathBuf>, u32)> 
             return None;
         }
         let path = dir.join("imported").join(name);
-        return path.exists().then_some((path, None, 4096));
+        // A vision model downloaded from Hugging Face has its projector named in its note.
+        let projector = projector_of(dir, name);
+        return path.exists().then_some((path, projector, 4096));
     }
     let entry = catalog::find(id)?;
     let model = final_path(dir, &entry.model);
@@ -255,6 +290,14 @@ pub fn llm_delete_model(app: AppHandle, id: String) -> Result<(), String> {
     let dir = models_dir(&app)?;
     if let Some(name) = id.strip_prefix(IMPORT_PREFIX) {
         let name = Path::new(name).file_name().ok_or("Invalid model name")?;
+        // Deleting a vision model takes its projector with it.
+        if let Some(p) = projector_of(&dir, &name.to_string_lossy()) {
+            let _ = std::fs::remove_file(p);
+        }
+        let _ = std::fs::remove_file(
+            dir.join("imported")
+                .join(format!("{}.json", name.to_string_lossy())),
+        );
         return std::fs::remove_file(dir.join("imported").join(name)).map_err(|e| e.to_string());
     }
     let entry = catalog::find(&id).ok_or("Unknown model")?;
@@ -281,6 +324,28 @@ pub async fn llm_import_model(app: AppHandle, path: String) -> Result<String, St
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?;
     Ok(format!("{IMPORT_PREFIX}{}", name.to_string_lossy()))
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
+pub struct SystemMemory {
+    pub total_bytes: u64,
+    pub free_bytes: u64,
+}
+
+/// Lets Explore rate a download against this machine before it starts.
+#[tauri::command]
+#[specta::specta]
+pub fn llm_system_memory() -> SystemMemory {
+    let total = sysinfo::System::new()
+        .map(|mut s| {
+            s.refresh_memory();
+            s.total_memory()
+        })
+        .unwrap_or(0);
+    SystemMemory {
+        total_bytes: total,
+        free_bytes: free_memory_bytes(),
+    }
 }
 
 /// Compares estimated resident memory with free RAM. VRAM is not checked yet.

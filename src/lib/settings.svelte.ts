@@ -12,6 +12,7 @@ class DictationSettings {
   activation = $state<ShortcutActivation>("hold_or_toggle");
   overlayStyle = $state<OverlayStyle>("minimal");
   cleanupWithLlm = $state(false);
+  muteWhileRecording = $state(true);
 
   async load() {
     if (!inTauri()) return;
@@ -25,6 +26,7 @@ class DictationSettings {
     this.activation = s.shortcut_activation ?? this.activation;
     this.overlayStyle = s.overlay_style ?? this.overlayStyle;
     this.cleanupWithLlm = s.post_process_enabled ?? false;
+    this.muteWhileRecording = s.mute_while_recording ?? true;
     this.loaded = true;
   }
 
@@ -45,6 +47,10 @@ class DictationSettings {
   setOverlayStyle(value: OverlayStyle) {
     this.overlayStyle = value;
     return this.apply(() => commands.changeOverlayStyleSetting(value));
+  }
+  setMute(value: boolean) {
+    this.muteWhileRecording = value;
+    return this.apply(() => commands.changeMuteWhileRecordingSetting(value));
   }
   setCleanup(value: boolean) {
     this.cleanupWithLlm = value;

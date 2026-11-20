@@ -1,8 +1,11 @@
 <script lang="ts">
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { chat, imagesOf, reasoningOf, textOf } from "#lib/chat.svelte.js";
+  import { speaker } from "#lib/speak.svelte.js";
   import ChatComposer from "#lib/components/app/chat-composer.svelte";
   import EngineBanner from "#lib/components/app/engine-banner.svelte";
+  import FirstRun from "#lib/components/app/first-run.svelte";
+  import { llm } from "#lib/llm.svelte.js";
   import { Skeleton } from "#lib/components/ui/skeleton/index.js";
   import PageHeader from "#lib/components/app/page-header.svelte";
   import {
@@ -26,6 +29,7 @@
     MessageActionsBar,
     MessageActionsCopy,
     MessageActionsRegenerate,
+    MessageActionsSpeak,
   } from "#lib/components/agents/message-actions/index.js";
   import { Reasoning } from "#lib/components/agents/reasoning/index.js";
   import {
@@ -47,7 +51,7 @@
         <Skeleton class="h-5 w-1/2 self-end" />
       </div>
     {/if}
-    <EngineBanner />
+    {#if llm.needsSetup || llm.setup}<FirstRun />{:else}<EngineBanner />{/if}
     <ChatComposer />
   </main>
 {:else}
@@ -98,6 +102,12 @@
                             <MessageActions>
                               <MessageActionsBar>
                                 <MessageActionsCopy {text} />
+                                {#if speaker.available}
+                                  <MessageActionsSpeak
+                                    pressed={speaker.speakingId === String(m.id)}
+                                    onPressedChange={(on) => (on ? speaker.speak(text, String(m.id)) : speaker.stop())}
+                                  />
+                                {/if}
                                 {#if i === chat.messages.length - 1}
                                   <MessageActionsRegenerate onclick={() => chat.regenerate()} />
                                 {/if}

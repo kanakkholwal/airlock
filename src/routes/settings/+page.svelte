@@ -4,6 +4,7 @@
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { onMount } from "svelte";
   import {
+    CpuIcon,
     FolderIcon,
     InfoCircleIcon,
     MonitorIcon,
@@ -17,24 +18,29 @@
   import { inTauri } from "#lib/env.js";
   import { general } from "#lib/general-settings.svelte.js";
   import { llm } from "#lib/llm.svelte.js";
+  import { memory } from "#lib/memory-settings.svelte.js";
+  import type { Accelerator } from "#lib/memory-policy.js";
   import { withThemeReveal } from "#lib/theme.js";
   import PageHeader from "#lib/components/app/page-header.svelte";
   import PageScroll from "#lib/components/app/page-scroll.svelte";
-  import SectionNav from "#lib/components/app/section-nav.svelte";
   import SettingRow from "#lib/components/app/setting-row.svelte";
   import SettingsGroup from "#lib/components/app/settings-group.svelte";
   import SettingsSkeleton from "#lib/components/app/settings-skeleton.svelte";
   import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
+  import { Select, SelectContent, SelectItem, SelectTrigger } from "#lib/components/ui/select/index.js";
   import { Switch } from "#lib/components/ui/switch/index.js";
+  import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
   import { ToggleGroup, ToggleGroupItem } from "#lib/components/ui/toggle-group/index.js";
 
   let version = $state("");
+  let tab = $state("general");
 
   onMount(() => {
     void general.load();
     void llm.init();
+    void memory.load();
     if (inTauri()) void getVersion().then((v) => (version = v));
   });
 
@@ -45,6 +51,7 @@
 
   const sections = [
     { id: "general", label: "General", icon: SettingsIcon },
+    { id: "memory", label: "Memory", icon: CpuIcon },
     { id: "privacy", label: "Privacy", icon: ShieldCheckIcon },
     { id: "storage", label: "Storage", icon: FolderIcon },
     { id: "about", label: "About", icon: InfoCircleIcon },
@@ -53,6 +60,7 @@
   // Decision (product): this list is the product. Everything that can leave the computer is
   // named here, with when and where to, so "private" is something you can check.
   const boundary = $derived([
+    { title: "Model search", detail: "huggingface.co, only while Models, Explore is open. Your search words are sent.", badge: "On request" },
     { title: "Model downloads", detail: "huggingface.co, only when you press Download.", badge: "On request" },
     { title: "Engine downloads", detail: "github.com, only when you press Install.", badge: "On request" },
     { title: "Chats, images and voice", detail: "Processed on this computer. Never sent anywhere.", badge: "Never leaves" },
@@ -62,6 +70,18 @@
       badge: general.updateChecks && !general.updateChecksLocked ? "On" : "Off",
     },
   ]);
+
+  const idleOptions = [
+    { value: "0", label: "Keep loaded" },
+    { value: "5", label: "After 5 minutes idle" },
+    { value: "15", label: "After 15 minutes idle" },
+    { value: "30", label: "After 30 minutes idle" },
+  ];
+  const acceleratorOptions: { value: Accelerator; label: string }[] = [
+    { value: "auto", label: "Automatic" },
+    { value: "cpu", label: "CPU (keeps the GPU free for chat)" },
+    { value: "gpu", label: "GPU" },
+  ];
 
   const folders = $derived(
     llm.paths
@@ -74,7 +94,7 @@
 </script>
 
 <PageScroll>
-  <main class="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-8 px-6 py-12">
+  <main class="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-8 px-6 py-12">
     <PageHeader title="Settings" description="How Airlock looks, starts, and what it is allowed to reach." />
 
     {#if !inTauri()}
@@ -89,14 +109,19 @@
       <Alert variant="destructive"><AlertDescription>{general.error}</AlertDescription></Alert>
     {/if}
 
-    <div class="flex items-start gap-10">
-      <SectionNav items={sections} />
+    {#if !general.loaded}
+      <SettingsSkeleton groups={2} rows={3} />
+    {:else}
+      <Tabs bind:value={tab} variant="segment" class="self-center">
+        <TabsList>
+          {#each sections as s (s.id)}
+            <TabsTrigger value={s.id}>{s.label}</TabsTrigger>
+          {/each}
+        </TabsList>
+      </Tabs>
 
-      <div class="flex min-w-0 flex-1 flex-col gap-10">
-        {#if !general.loaded}
-          <SettingsSkeleton groups={4} rows={2} />
-        {:else}
-          <SettingsGroup id="general" icon={SettingsIcon} title="General" description="How Airlock looks and when it starts.">
+          {#if tab === "general"}
+<SettingsGroup id="general" icon={SettingsIcon} title="General" description="How Airlock looks and when it starts.">
             <SettingRow title="Theme" description="Follow your system, or choose one.">
               <ToggleGroup
                 label="Theme"
@@ -121,7 +146,59 @@
             </SettingRow>
           </SettingsGroup>
 
-          <SettingsGroup id="privacy" icon={ShieldCheckIcon} title="Privacy" description="Everything that can leave this computer, when, and where to.">
+          {/if}
+{#if tab === "memory"}
+<SettingsGroup
+  id="memory"
+  icon={CpuIcon}
+  title="Memory"
+  description="Chat and dictation share your computer's memory. These keep them from slowing each other down."
+>
+  <SettingRow title="Free chat model memory" description="The model loads again when you send your next message, which takes a few seconds.">
+    <Select
+      items={idleOptions}
+      bind:value={() => String(memory.idleMinutes), (v) => void memory.setResidency(Number(v), memory.unloadWhenHidden)}
+    >
+      <SelectTrigger class="w-56">
+        <span class="truncate">{idleOptions.find((o) => o.value === String(memory.idleMinutes))?.label ?? `After ${memory.idleMinutes} minutes idle`}</span>
+      </SelectTrigger>
+      <SelectContent align="end">
+        {#each idleOptions as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}
+      </SelectContent>
+    </Select>
+  </SettingRow>
+  <SettingRow title="Unload when the window is hidden" description="Frees the chat model 30 seconds after you hide Airlock, so dictation has the memory.">
+    <Switch
+      aria-label="Unload when the window is hidden"
+      checked={memory.unloadWhenHidden}
+      onCheckedChange={(v) => memory.setResidency(memory.idleMinutes, v)}
+    />
+  </SettingRow>
+  <SettingRow
+    title="Speech processing"
+    description={memory.gpuNames.length > 0
+      ? `Where dictation runs. A short phrase takes about a second on the CPU. Your GPU: ${memory.gpuNames.join(", ")}.`
+      : "Where dictation runs. A short phrase takes about a second on the CPU."}
+  >
+    <Select
+      items={acceleratorOptions}
+      bind:value={() => memory.accelerator, (v) => void memory.setAccelerator(v as Accelerator)}
+    >
+      <SelectTrigger class="w-64">
+        <span class="truncate">{acceleratorOptions.find((o) => o.value === memory.accelerator)?.label}</span>
+      </SelectTrigger>
+      <SelectContent align="end">
+        {#each acceleratorOptions as o (o.value)}<SelectItem value={o.value}>{o.label}</SelectItem>{/each}
+      </SelectContent>
+    </Select>
+  </SettingRow>
+  <p class="pb-3 text-sm text-muted-foreground text-pretty">
+    Cleaning up dictation with a model only works while the chat model is loaded. Otherwise the text is pasted as spoken.
+  </p>
+</SettingsGroup>
+{/if}
+{#if tab === "privacy"}
+<SettingsGroup id="privacy" icon={ShieldCheckIcon} title="Privacy" description="Everything that can leave this computer, when, and where to.">
             {#each boundary as item (item.title)}
               <SettingRow title={item.title} description={item.detail}>
                 <Badge variant={item.badge === "Never leaves" ? "success" : "secondary"}>{item.badge}</Badge>
@@ -140,7 +217,9 @@
             </SettingRow>
           </SettingsGroup>
 
-          <SettingsGroup
+          {/if}
+{#if tab === "storage"}
+<SettingsGroup
             id="storage"
             icon={FolderIcon}
             title="Storage"
@@ -167,7 +246,9 @@
             </SettingRow>
           </SettingsGroup>
 
-          <SettingsGroup id="about" icon={InfoCircleIcon} title="About" description="Airlock by Nexonauts.">
+          {/if}
+{#if tab === "about"}
+<SettingsGroup id="about" icon={InfoCircleIcon} title="About" description="Airlock by Nexonauts.">
             <SettingRow title="Airlock" description="Local AI that stays on your computer.">
               <Badge variant="secondary">{version ? `v${version}` : "Preview"}</Badge>
             </SettingRow>
@@ -175,8 +256,7 @@
               <Button size="sm" variant="secondary" onclick={() => openUrl(APP_URL)}>Open</Button>
             </SettingRow>
           </SettingsGroup>
-        {/if}
-      </div>
-    </div>
+{/if}
+    {/if}
   </main>
 </PageScroll>
