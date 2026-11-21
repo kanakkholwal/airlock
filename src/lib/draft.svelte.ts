@@ -1,6 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { commands } from "../bindings";
+import { commands, type Artifact } from "../bindings";
 
 export type DraftImage = { path: string; name: string; sizeBytes: number; src: string };
 
@@ -10,12 +10,14 @@ const inTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in 
 class Draft {
   text = $state("");
   images = $state<DraftImage[]>([]);
+  /** Library items pointed at with @; only their id, title and preview are sent. */
+  mentions = $state<Artifact[]>([]);
   /** Files being validated and copied, shown as uploading chips. */
   pending = $state<string[]>([]);
   error = $state<string | null>(null);
 
   get canSend() {
-    return this.text.trim().length > 0 || this.images.length > 0;
+    return this.text.trim().length > 0 || this.images.length > 0 || this.mentions.length > 0;
   }
 
   /** Opens the file picker; each chosen image is validated and copied by the backend. */
@@ -42,6 +44,14 @@ class Draft {
     this.pending = [];
   }
 
+  addMention(item: Artifact) {
+    if (!this.mentions.some((m) => m.id === item.id)) this.mentions.push(item);
+  }
+
+  removeMention(id: string) {
+    this.mentions = this.mentions.filter((m) => m.id !== id);
+  }
+
   remove(path: string) {
     this.images = this.images.filter((i) => i.path !== path);
   }
@@ -49,6 +59,7 @@ class Draft {
   clear() {
     this.text = "";
     this.images = [];
+    this.mentions = [];
     this.error = null;
   }
 }

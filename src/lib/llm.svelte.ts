@@ -15,6 +15,7 @@ import {
 import {
   chat,
   imagesOf,
+  referencesOf,
   textOf,
   type ChatMessage,
   type ChatTransport,
@@ -42,6 +43,17 @@ const toChatEngine = (s: EngineState): ChatEngine =>
 
 const DEFAULT_CONTEXT_TOKENS = 4096;
 
+/**
+ * Decision (privacy): a mention gives the model the item's id, title and a short preview, and
+ * nothing more. To read further it must call a tool, which asks the person and passes the
+ * privacy gateway. Cloud providers will filter these previews by the item's privacy flag first.
+ */
+function withReferences(text: string, refs: { id: string; title: string; kind: string; preview: string }[]) {
+  if (refs.length === 0) return text;
+  const lines = refs.map((r) => `- ${r.id} (${r.kind}) "${r.title}": ${r.preview}`);
+  return `${text}\n\n[Attached from the library. These are only previews. Use read_item with the id to read one in full.]\n${lines.join("\n")}`;
+}
+
 // Heuristic: about 3 characters per token, and 70% of the window for the prompt so the reply
 // has room. Oldest turns are dropped first; the newest message is always kept.
 // Debt: move into Rust and use real token counts (see .local/ARCHITECTURE.md).
@@ -50,7 +62,7 @@ function fitHistory(history: ChatMessage[], contextTokens: number) {
   const out: { role: string; content: string; images: string[] }[] = [];
   let used = 0;
   for (const m of [...history].reverse()) {
-    const content = textOf(m);
+    const content = m.role === "user" ? withReferences(textOf(m), referencesOf(m)) : textOf(m);
     const images = m.role === "user" ? imagesOf(m) : [];
     if (!content && images.length === 0) continue;
     if (out.length > 0 && used + content.length > budget) break;

@@ -84,6 +84,12 @@ export const imagesOf = (m: ChatMessage) =>
 
 export type ImageRef = { path: string; name: string };
 
+/** A library item a message points at: its id, title and a short preview, never the whole text. */
+export type Reference = { id: string; title: string; kind: string; preview: string };
+
+export const referencesOf = (m: ChatMessage): Reference[] =>
+  m.parts.flatMap((p) => (p.type === "reference" ? [{ id: p.id, title: p.title, kind: p.kind, preview: p.preview }] : []));
+
 class ChatSession {
   messages = $state<ChatMessage[]>([]);
   conversations = $state<Conversation[]>([]);
@@ -205,9 +211,10 @@ class ChatSession {
     await this.refreshList();
   }
 
-  send(text: string, images: ImageRef[] = []) {
+  send(text: string, images: ImageRef[] = [], references: Reference[] = []) {
     const parts: Part[] = [
       ...images.map((i): Part => ({ type: "image", path: i.path })),
+      ...references.map((r): Part => ({ type: "reference", id: r.id, title: r.title, kind: r.kind, preview: r.preview })),
       { type: "text", text },
     ];
     const msg: ChatMessage = {

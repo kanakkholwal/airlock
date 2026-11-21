@@ -995,6 +995,76 @@ async imageDelete(id: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async libraryRefresh() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("library_refresh") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async libraryList(kind: string | null, query: string | null) : Promise<Result<Artifact[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("library_list", { kind, query }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async librarySetPrivacy(id: string, privacy: Privacy) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("library_set_privacy", { id, privacy }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async libraryText(id: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("library_text", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async jobStart(kind: string, inputId: string) : Promise<Result<Job, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("job_start", { kind, inputId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Runs a stopped job again; parts already summarized are kept, not redone.
+ */
+async jobRetry(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("job_retry", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async jobCancel(id: number) : Promise<void> {
+    await TAURI_INVOKE("job_cancel", { id });
+},
+async jobList() : Promise<Result<Job[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("job_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async jobClear(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("job_clear", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async agentDecide(callId: string, answer: Answer) : Promise<void> {
     await TAURI_INVOKE("agent_decide", { callId, answer });
 },
@@ -1485,6 +1555,7 @@ async watchMicLevels(on: boolean) : Promise<void> {
 
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
+jobUpdated: JobUpdated,
 llmStateChanged: LlmStateChanged,
 noticesChanged: NoticesChanged,
 recordingStateEvent: RecordingStateEvent,
@@ -1494,6 +1565,7 @@ transcriptionCompleteEvent: TranscriptionCompleteEvent,
 transcriptionJob: TranscriptionJob
 }>({
 historyUpdatePayload: "history-update-payload",
+jobUpdated: "job-updated",
 llmStateChanged: "llm-state-changed",
 noticesChanged: "notices-changed",
 recordingStateEvent: "recording-state-event",
@@ -1625,6 +1697,19 @@ language_detection_window_secs?: number;
  * `overlay_position` (position `none` → style `None`).
  */
 overlay_style?: OverlayStyle }
+export type Artifact = { 
+/**
+ * `recording:12`, `transcript:30`, `image:<id>`, `note:<file>`, `summary:<id>`.
+ */
+id: string; kind: string; title: string; 
+/**
+ * The first words, or the prompt for an image. Never the whole text.
+ */
+preview: string; created_ms: number; privacy: Privacy; 
+/**
+ * What made it, such as `dictation` or `summarize of recording:12`.
+ */
+source: string; path: string | null }
 export type AttachedImage = { 
 /**
  * Absolute path of the stored copy inside the app data folder.
@@ -1745,6 +1830,12 @@ export type ImplementationChangeResult = { success: boolean;
  * List of binding IDs that were reset to defaults due to incompatibility
  */
 reset_bindings: string[] }
+export type Job = { id: number; kind: string; title: string; input_id: string; 
+/**
+ * queued, running, done, failed, cancelled or interrupted.
+ */
+state: string; step: string; percent: number; output_id: string | null; error: string | null }
+export type JobUpdated = Job
 export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_pid: number | null; culprit_name: string | null; 
 /**
  * Counts only — key identity is deliberately never captured.
@@ -1930,6 +2021,7 @@ export type PostProcessApiFormat =
  */
 "anthropic"
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean; api_format?: PostProcessApiFormat }
+export type Privacy = "local_only" | "shareable"
 /**
  * Recording phase events for windows that follow along (onboarding's Try it).
  */

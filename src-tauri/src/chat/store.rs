@@ -32,6 +32,14 @@ pub enum Part {
     Audio {
         path: String,
     },
+    /// An item from the library the person pointed at with `@`. Only its id, title and a short
+    /// preview travel with the message; anything more goes through the privacy gateway.
+    Reference {
+        id: String,
+        title: String,
+        kind: String,
+        preview: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]

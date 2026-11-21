@@ -135,7 +135,7 @@ pub async fn chat_loop(
                             }
                         };
                         match allowed {
-                            Ok(()) => match (d.run)(app, &config, &args) {
+                            Ok(()) => match (d.run)(app.clone(), config.clone(), args.clone()).await {
                                 Ok(out) => (tools::clip(out), false),
                                 Err(e) => (e, true),
                             },

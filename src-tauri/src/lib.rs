@@ -14,6 +14,7 @@ pub mod engine_supervisor;
 mod helpers;
 mod image;
 mod language_detection;
+mod library;
 mod languages;
 mod llm;
 mod llm_client;
@@ -223,6 +224,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(tray::TrayState::new());
     data::init(app_handle);
     agent::manage(app_handle);
+    library::manage(app_handle);
     llm::commands::manage(app_handle);
     llm::models::manage(app_handle);
     image::manage(app_handle);
@@ -850,6 +852,15 @@ pub fn run(cli_args: CliArgs) {
             image::generate::image_cancel,
             image::generate::image_list,
             image::generate::image_delete,
+            library::library_refresh,
+            library::library_list,
+            library::library_set_privacy,
+            library::library_text,
+            library::jobs::job_start,
+            library::jobs::job_retry,
+            library::jobs::job_cancel,
+            library::jobs::job_list,
+            library::jobs::job_clear,
             agent::agent_decide,
             agent::config::agent_get_config,
             agent::config::agent_set_config,
@@ -924,6 +935,7 @@ pub fn run(cli_args: CliArgs) {
             actions::TranscriptionCompleteEvent,
             notices::NoticesChanged,
             llm::engine::LlmStateChanged,
+            library::jobs::JobUpdated,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

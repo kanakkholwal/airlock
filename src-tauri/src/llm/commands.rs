@@ -105,7 +105,7 @@ fn engines_dir(app: &AppHandle) -> Result<PathBuf, String> {
     super::paths::engines_dir(app)
 }
 
-async fn ready_port(engine: &LlmEngine) -> Result<(u16, Backend, String), String> {
+pub(crate) async fn ready_port(engine: &LlmEngine) -> Result<(u16, Backend, String), String> {
     let key = engine.api_key().await.unwrap_or_default();
     match engine.state().await {
         EngineState::Ready { port, backend, .. } => Ok((port, backend, key)),

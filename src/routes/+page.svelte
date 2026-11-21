@@ -1,9 +1,10 @@
 <script lang="ts">
   import { convertFileSrc } from "@tauri-apps/api/core";
-  import { chat, hasTools, imagesOf, reasoningOf, resultOf, textOf } from "#lib/chat.svelte.js";
+  import { chat, hasTools, imagesOf, reasoningOf, referencesOf, resultOf, textOf } from "#lib/chat.svelte.js";
   import { speaker } from "#lib/speak.svelte.js";
   import ChatComposer from "#lib/components/app/chat-composer.svelte";
   import ChatToolCall from "#lib/components/app/chat-tool-call.svelte";
+  import KindIcon from "#lib/components/app/kind-icon.svelte";
   import EngineBanner from "#lib/components/app/engine-banner.svelte";
   import FirstRun from "#lib/components/app/first-run.svelte";
   import { llm } from "#lib/llm.svelte.js";
@@ -79,6 +80,17 @@
                       {/each}
                     </Attachments>
                   {/if}
+                  {#each [referencesOf(m)] as refs (m.id)}
+                    {#if refs.length > 0}
+                      <ul class="flex flex-wrap justify-end gap-1.5">
+                        {#each refs as r (r.id)}
+                          <li class="flex items-center gap-1.5 rounded-full bg-muted py-1 px-2.5 text-sm text-muted-foreground">
+                            <KindIcon kind={r.kind} size={14} /><span class="max-w-48 truncate">{r.title}</span>
+                          </li>
+                        {/each}
+                      </ul>
+                    {/if}
+                  {/each}
                   {#if text}
                     <MessageBubble variant="primary">{text}</MessageBubble>
                   {/if}

@@ -3,7 +3,9 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use specta::Type;
 use std::path::{Path, PathBuf};
-use tauri::AppHandle;
+use futures_util::future::BoxFuture;
+use futures_util::FutureExt;
+use tauri::{AppHandle, Manager};
 
 const MAX_OUTPUT_CHARS: usize = 8_000;
 const MAX_FILE_BYTES: u64 = 256 * 1024;
@@ -18,6 +20,9 @@ pub enum Risk {
     Write,
 }
 
+/// A tool runs on its own task, so a slow one (transcribing, summarizing) never blocks the app.
+pub type RunFuture = BoxFuture<'static, Result<String, String>>;
+
 pub struct ToolDef {
     pub name: &'static str,
     pub description: &'static str,
@@ -27,8 +32,10 @@ pub struct ToolDef {
     pub parameters: fn() -> Value,
     /// What the call does in words, shown in chat and in the approval card.
     pub describe: fn(&Value) -> String,
-    pub run: fn(&AppHandle, &AgentConfig, &Value) -> Result<String, String>,
+    pub run: fn(AppHandle, AgentConfig, Value) -> RunFuture,
 }
+
+const AUDIO_EXTENSIONS: &[&str] = &["mp3", "wav", "m4a", "aac", "flac", "ogg", "opus", "webm", "mp4", "mov", "mkv", "aiff"];
 
 pub const TOOLS: &[ToolDef] = &[
     ToolDef {
@@ -38,7 +45,7 @@ pub const TOOLS: &[ToolDef] = &[
         needs_folder: false,
         parameters: || json!({ "type": "object", "properties": {} }),
         describe: |_| "Checking the time".into(),
-        run: |_, _, _| Ok(chrono::Local::now().format("%A, %d %B %Y, %H:%M (%:z)").to_string()),
+        run: |_, _, _| async { Ok(chrono::Local::now().format("%A, %d %B %Y, %H:%M (%:z)").to_string()) }.boxed(),
     },
     ToolDef {
         name: "list_folder",
@@ -52,7 +59,7 @@ pub const TOOLS: &[ToolDef] = &[
             })
         },
         describe: |a| format!("Listing {}", a["path"].as_str().unwrap_or("the shared folder")),
-        run: list_folder,
+        run: |app, config, args| async move { list_folder(&app, &config, &args) }.boxed(),
     },
     ToolDef {
         name: "read_text_file",
@@ -67,40 +74,73 @@ pub const TOOLS: &[ToolDef] = &[
             })
         },
         describe: |a| format!("Reading {}", file_label(a["path"].as_str().unwrap_or("a file"))),
-        run: read_text_file,
+        run: |app, config, args| async move { read_text_file(&app, &config, &args) }.boxed(),
     },
     ToolDef {
-        name: "search_recordings",
-        description: "Search the user's dictated recordings and transcribed files by words. Returns only short previews with an id; ask to read one in full with read_recording.",
+        name: "search_library",
+        description: "Search the user's library of recordings, transcribed files, notes, summaries and images by words in the title or start of the text. Returns ids with short previews only. To read one in full, use read_item with its id.",
         risk: Risk::Read,
         needs_folder: false,
         parameters: || {
             json!({
                 "type": "object",
                 "properties": {
-                    "query": { "type": "string", "description": "Words to look for." },
+                    "query": { "type": "string", "description": "Words to look for. Leave empty to list the newest." },
+                    "kind": { "type": "string", "enum": ["recording", "transcript", "note", "summary", "image"], "description": "Only this kind." },
                     "limit": { "type": "integer", "description": "How many results, at most 10." }
-                },
-                "required": ["query"]
+                }
             })
         },
-        describe: |a| format!("Searching recordings for \"{}\"", a["query"].as_str().unwrap_or("")),
-        run: search_recordings,
+        describe: |a| match a["query"].as_str().filter(|q| !q.is_empty()) {
+            Some(q) => format!("Searching the library for \"{q}\""),
+            None => "Looking through the library".into(),
+        },
+        run: |app, _, args| async move { search_library(&app, &args) }.boxed(),
     },
     ToolDef {
-        name: "read_recording",
-        description: "Read the full text of one recording by its id from search_recordings. The user is asked before it is shared.",
+        name: "read_item",
+        description: "Read the full text of one library item by its id, such as recording:12, transcript:30, note:plan or summary:4. The user is asked before it is shared.",
         risk: Risk::Ask,
         needs_folder: false,
         parameters: || {
             json!({
                 "type": "object",
-                "properties": { "id": { "type": "integer", "description": "The recording id." } },
+                "properties": { "id": { "type": "string", "description": "The library id, from search_library or an attached item." } },
                 "required": ["id"]
             })
         },
-        describe: |a| format!("Reading the full text of recording #{}", a["id"]),
-        run: read_recording,
+        describe: |a| format!("Reading the full text of {}", a["id"].as_str().unwrap_or("an item")),
+        run: |app, _, args| async move { read_item(&app, &args) }.boxed(),
+    },
+    ToolDef {
+        name: "summarize_item",
+        description: "Write a short summary of one library item with the local model, then return it. The summary is saved in the library. The user is asked first.",
+        risk: Risk::Ask,
+        needs_folder: false,
+        parameters: || {
+            json!({
+                "type": "object",
+                "properties": { "id": { "type": "string", "description": "The library id, such as recording:12." } },
+                "required": ["id"]
+            })
+        },
+        describe: |a| format!("Summarizing {}", a["id"].as_str().unwrap_or("an item")),
+        run: |app, _, args| async move { summarize_item(&app, &args).await }.boxed(),
+    },
+    ToolDef {
+        name: "transcribe_file",
+        description: "Turn an audio or video file from a shared folder into text on this computer. The text is added to the library. The user approves each file.",
+        risk: Risk::Write,
+        needs_folder: true,
+        parameters: || {
+            json!({
+                "type": "object",
+                "properties": { "path": { "type": "string", "description": "Audio or video file, full or relative to a shared folder." } },
+                "required": ["path"]
+            })
+        },
+        describe: |a| format!("Transcribing {}", file_label(a["path"].as_str().unwrap_or("a file"))),
+        run: |app, config, args| async move { transcribe_file(&app, &config, &args).await }.boxed(),
     },
     ToolDef {
         name: "save_note",
@@ -118,7 +158,7 @@ pub const TOOLS: &[ToolDef] = &[
             })
         },
         describe: |a| format!("Saving the note \"{}\"", a["title"].as_str().unwrap_or("Untitled")),
-        run: save_note,
+        run: |app, config, args| async move { save_note(&app, &config, &args) }.boxed(),
     },
 ];
 
@@ -227,74 +267,75 @@ fn read_text_file(_: &AppHandle, config: &AgentConfig, args: &Value) -> Result<S
     Ok(clip(text))
 }
 
-fn history_db(app: &AppHandle) -> Result<rusqlite::Connection, String> {
-    let path = crate::portable::app_data_dir(app)
+fn search_library(app: &AppHandle, args: &Value) -> Result<String, String> {
+    let query = args["query"].as_str().unwrap_or("").trim();
+    let kind = args["kind"].as_str().unwrap_or("");
+    let limit = args["limit"].as_i64().unwrap_or(5).clamp(1, 10) as usize;
+    let found = crate::library::search(app, kind, query, limit)?;
+    if found.is_empty() {
+        return Ok("Nothing in the library matched.".into());
+    }
+    Ok(found
+        .iter()
+        .map(|a| format!("{} · {} · {} · {}", a.id, a.kind, a.title, a.preview))
+        .collect::<Vec<_>>()
+        .join("\n"))
+}
+
+fn read_item(app: &AppHandle, args: &Value) -> Result<String, String> {
+    use crate::library::privacy::{visible_text, Grant, Provider};
+    let id = args["id"].as_str().ok_or("Give a library id")?;
+    // Every read of a person's text goes through the privacy gateway, which applies their flags
+    // and writes the privacy log.
+    crate::library::refresh(app)?;
+    Ok(clip(visible_text(app, id, Provider::Local, Grant::Full)?))
+}
+
+async fn summarize_item(app: &AppHandle, args: &Value) -> Result<String, String> {
+    let id = args["id"].as_str().ok_or("Give a library id")?;
+    crate::library::refresh(app)?;
+    let (summary_id, text) = crate::library::jobs::summarize_and_wait(app, id).await?;
+    Ok(clip(format!("Summary saved as {summary_id}:\n{text}")))
+}
+
+async fn transcribe_file(app: &AppHandle, config: &AgentConfig, args: &Value) -> Result<String, String> {
+    use crate::managers::history::HistoryManager;
+    use crate::managers::transcription_jobs::TranscriptionJobManager;
+    use std::sync::Arc;
+
+    let path = resolve_allowed(&roots(config), args["path"].as_str().ok_or("Give a file path")?)?;
+    let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    if !path.is_file() || !AUDIO_EXTENSIONS.contains(&ext.as_str()) {
+        return Err("That is not an audio or video file Airlock can transcribe.".into());
+    }
+    let jobs = Arc::clone(&app.state::<Arc<TranscriptionJobManager>>());
+    let entry = tauri::async_runtime::spawn_blocking(move || jobs.transcribe_file(path))
+        .await
         .map_err(|e| e.to_string())?
-        .join("history.db");
-    rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .map_err(|_| "There are no recordings yet.".to_string())
+        .map_err(|e| e.to_string())?;
+
+    let history = Arc::clone(&app.state::<Arc<HistoryManager>>());
+    // Long recordings take a while; wait a few minutes, then hand back the id either way.
+    for _ in 0..240 {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        let current = history.get_entry_by_id(entry.id).await.map_err(|e| e.to_string())?;
+        if let Some(done) = current.filter(|e| !e.transcription_text.trim().is_empty()) {
+            let _ = crate::library::refresh(app);
+            return Ok(format!(
+                "Transcribed. Library id: transcript:{}\nStarts: {}\nUse read_item or summarize_item with that id.",
+                entry.id,
+                preview(&done.transcription_text)
+            ));
+        }
+    }
+    Ok(format!(
+        "Still transcribing in the background. It will appear in the library as transcript:{} when it is done.",
+        entry.id
+    ))
 }
 
 fn preview(text: &str) -> String {
-    let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    if flat.chars().count() > 160 {
-        format!("{}…", flat.chars().take(160).collect::<String>())
-    } else {
-        flat
-    }
-}
-
-fn when(ts: i64) -> String {
-    chrono::DateTime::from_timestamp(ts, 0)
-        .map(|d| d.with_timezone(&chrono::Local).format("%d %b %Y %H:%M").to_string())
-        .unwrap_or_default()
-}
-
-fn search_recordings(app: &AppHandle, _: &AgentConfig, args: &Value) -> Result<String, String> {
-    let query = args["query"].as_str().ok_or("Give some words to search for")?.trim();
-    if query.is_empty() {
-        return Err("Give some words to search for".into());
-    }
-    let limit = args["limit"].as_i64().unwrap_or(5).clamp(1, 10);
-    let conn = history_db(app)?;
-    let like = format!("%{}%", query.replace('%', "").replace('_', ""));
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, timestamp, title, transcription_text FROM transcription_history
-             WHERE transcription_text LIKE ?1 OR title LIKE ?1 ORDER BY id DESC LIMIT ?2",
-        )
-        .map_err(|e| e.to_string())?;
-    let rows = stmt
-        .query_map(rusqlite::params![like, limit], |r| {
-            Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?, r.get::<_, String>(2)?, r.get::<_, String>(3)?))
-        })
-        .map_err(|e| e.to_string())?;
-    let mut lines = vec![];
-    for row in rows.flatten() {
-        let (id, ts, title, text) = row;
-        let head = if title.trim().is_empty() { preview(&text) } else { title };
-        lines.push(format!("#{id} · {} · {}", when(ts), preview(&head)));
-    }
-    if lines.is_empty() {
-        return Ok("No recordings matched.".into());
-    }
-    Ok(lines.join("\n"))
-}
-
-fn read_recording(app: &AppHandle, _: &AgentConfig, args: &Value) -> Result<String, String> {
-    let id = args["id"].as_i64().ok_or("Give a recording id")?;
-    let conn = history_db(app)?;
-    let text: Option<(String, Option<String>)> = conn
-        .query_row(
-            "SELECT transcription_text, post_processed_text FROM transcription_history WHERE id = ?1",
-            [id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )
-        .ok();
-    match text {
-        Some((raw, cleaned)) => Ok(clip(cleaned.filter(|c| !c.trim().is_empty()).unwrap_or(raw))),
-        None => Err("No recording has that id.".into()),
-    }
+    crate::library::preview_of(text)
 }
 
 /// A file name made only of safe characters.
@@ -394,9 +435,11 @@ mod tests {
 
     #[test]
     fn private_and_writing_tools_ask_first() {
-        assert_eq!(find("read_recording").unwrap().risk, Risk::Ask);
+        assert_eq!(find("read_item").unwrap().risk, Risk::Ask);
+        assert_eq!(find("summarize_item").unwrap().risk, Risk::Ask);
+        assert_eq!(find("transcribe_file").unwrap().risk, Risk::Write);
         assert_eq!(find("save_note").unwrap().risk, Risk::Write);
-        assert_eq!(find("search_recordings").unwrap().risk, Risk::Read);
+        assert_eq!(find("search_library").unwrap().risk, Risk::Read);
     }
 
     #[test]

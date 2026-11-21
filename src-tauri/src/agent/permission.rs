@@ -187,33 +187,33 @@ mod tests {
     #[test]
     fn modes_set_the_baseline_for_calls_without_a_rule() {
         let read = find("get_time").unwrap();
-        let private = find("read_recording").unwrap();
+        let private = find("read_item").unwrap();
         let write = find("save_note").unwrap();
         let none = json!({});
         assert_eq!(decide(Mode::Ask, &[], &[], read, &none), Decision::Allow);
-        assert_eq!(decide(Mode::Ask, &[], &[], private, &json!({"id": 3})), Decision::Ask);
+        assert_eq!(decide(Mode::Ask, &[], &[], private, &json!({"id": "recording:3"})), Decision::Ask);
         assert_eq!(decide(Mode::Ask, &[], &[], write, &json!({"title": "t", "text": "x"})), Decision::Ask);
         assert_eq!(decide(Mode::AcceptWrites, &[], &[], write, &json!({"title": "t", "text": "x"})), Decision::Allow);
         // Accepting writes never opens up private reads.
-        assert_eq!(decide(Mode::AcceptWrites, &[], &[], private, &json!({"id": 3})), Decision::Ask);
-        assert!(matches!(decide(Mode::DontAsk, &[], &[], private, &json!({"id": 3})), Decision::Deny(_)));
+        assert_eq!(decide(Mode::AcceptWrites, &[], &[], private, &json!({"id": "recording:3"})), Decision::Ask);
+        assert!(matches!(decide(Mode::DontAsk, &[], &[], private, &json!({"id": "recording:3"})), Decision::Deny(_)));
         assert_eq!(decide(Mode::DontAsk, &[], &[], read, &none), Decision::Allow);
     }
 
     #[test]
     fn a_remembered_grant_allows_without_asking() {
-        let tool = find("read_recording").unwrap();
-        let grants = [rule(Action::Allow, "read_recording", Some("7"))];
-        assert_eq!(decide(Mode::Ask, &[], &grants, tool, &json!({"id": 7})), Decision::Allow);
-        assert_eq!(decide(Mode::Ask, &[], &grants, tool, &json!({"id": 8})), Decision::Ask);
+        let tool = find("read_item").unwrap();
+        let grants = [rule(Action::Allow, "read_item", Some("recording:7"))];
+        assert_eq!(decide(Mode::Ask, &[], &grants, tool, &json!({"id": "recording:7"})), Decision::Allow);
+        assert_eq!(decide(Mode::Ask, &[], &grants, tool, &json!({"id": "recording:8"})), Decision::Ask);
     }
 
     #[test]
     fn a_deny_rule_beats_a_remembered_grant() {
-        let tool = find("read_recording").unwrap();
+        let tool = find("read_item").unwrap();
         let rules = [rule(Action::Deny, "*", None)];
-        let grants = [rule(Action::Allow, "read_recording", None)];
-        assert!(matches!(decide(Mode::Ask, &rules, &grants, tool, &json!({"id": 1})), Decision::Deny(_)));
+        let grants = [rule(Action::Allow, "read_item", None)];
+        assert!(matches!(decide(Mode::Ask, &rules, &grants, tool, &json!({"id": "recording:1"})), Decision::Deny(_)));
     }
 
     #[test]

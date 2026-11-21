@@ -1,0 +1,129 @@
+name: Release
+
+# Push a tag to build and publish Airlock:
+#   git tag v0.1.0-pre.1 && git push origin v0.1.0-pre.1
+# A tag with a dash (v0.1.0-pre.1) is published as a pre-release; v0.1.0 is a full release.
+# Nothing is published until every platform has built, so a failed build never leaves a
+# half-empty release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build, for example v0.1.0-pre.1 (it must already exist)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  verify:
+    name: Check the interface
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The generated bindings are committed, so the type check runs here without a Rust build.
+      - run: pnpm check
+      - run: pnpm test
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            args: "--bundles nsis"
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            args: "--target aarch64-apple-darwin"
+            rust_targets: aarch64-apple-darwin
+          - name: Linux
+            os: ubuntu-22.04
+            args: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set the version from the tag
+        run: node scripts/set-version.mjs "$TAG"
+        shell: bash
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.os }}
+
+      - name: Linux system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
+            libgtk-layer-shell-dev libasound2-dev libssl-dev libxdo-dev \
+            libx11-dev libxtst-dev libopenblas-dev cmake clang
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The updater signs each installer so a later version can verify it came from us.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ env.TAG }}
+          releaseName: "Airlock ${{ env.TAG }}"
+          releaseBody: |
+            Airlock ${{ env.TAG }}. Local AI for chat, dictation, voice and images, on your own computer.
+
+            This build is not code-signed yet, so Windows SmartScreen and macOS Gatekeeper will warn the first time you open it.
+          # Kept as a draft until every platform has uploaded, then published by the next job.
+          releaseDraft: true
+          prerelease: ${{ contains(env.TAG, '-') }}
+          args: ${{ matrix.args }}
+
+  publish:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "$TAG" == *-* ]]; then FLAGS="--prerelease"; else FLAGS="--latest"; fi
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false $FLAGS

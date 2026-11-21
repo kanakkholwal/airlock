@@ -6,6 +6,7 @@
   import { exit } from "@tauri-apps/plugin-process";
   import {
     ChatLineIcon,
+    FolderWithFilesIcon,
     GalleryIcon,
     VolumeLoudIcon,
     CpuIcon,
@@ -61,6 +62,7 @@
     { href: "/dictation", label: "Dictation", icon: dictationIcon },
     { href: "/voice", label: "Voice", icon: voiceIcon },
     { href: "/images", label: "Images", icon: imagesIcon },
+    { href: "/library", label: "Library", icon: libraryIcon },
     { href: "/models", label: "Models", icon: modelsIcon },
     { href: "/settings", label: "Settings", icon: settingsIcon },
   ];
@@ -126,6 +128,7 @@
 
 {#snippet dictationIcon()}<MicrophoneIcon size={18} />{/snippet}
 {#snippet voiceIcon()}<VolumeLoudIcon size={18} />{/snippet}
+{#snippet libraryIcon()}<FolderWithFilesIcon size={18} />{/snippet}
 {#snippet imagesIcon()}<GalleryIcon size={18} />{/snippet}
 {#snippet modelsIcon()}<CpuIcon size={18} />{/snippet}
 {#snippet settingsIcon()}<SettingsIcon size={18} />{/snippet}
