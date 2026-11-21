@@ -420,6 +420,61 @@
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},
+		"https://baby-ui.pages.dev/svelte/r/hover-card.json": {
+			"name": "hover-card",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-21T06:04:08.500Z",
+			"itemHash": "6dd4314e8e42ee9afa22992fd557d60dfd47d9108aaae9b5f079e70e63a1e952",
+			"files": {
+				"src/lib/anchor.ts": "ee6a400672d75cf4c257a823108006ae666e45873e05add270d7cbad68e1283c",
+				"src/lib/cn.ts": "0fca478853f3fc4310e40ebff727a53da7ec677938f4e3e0d5ecaa62e936a199",
+				"src/lib/components/ui/hover-card/hover-card-content.svelte": "e2630f48a1c40aa89d18301613d817241bfb1d7c12d25f379b23d178399ee92b",
+				"src/lib/components/ui/hover-card/hover-card-trigger.svelte": "6b3e147facf55b68c50a9f458239114a6c10a71061cab602252383c3ec3eeb60",
+				"src/lib/components/ui/hover-card/hover-card.svelte": "011255c182572a1c9e77ec21271a57060bc221dd2affadf45c027ab47d645fbe",
+				"src/lib/components/ui/hover-card/index.ts": "0f9b1fbcf7b7d32b594db2f2524b11c5e37172aa1fde4f1dc5e69790bf3bf8d5"
+			},
+			"dependencies": [
+				"bits-ui",
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
+		"https://baby-ui.pages.dev/svelte/r/image-generation.json": {
+			"name": "image-generation",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-21T06:04:08.496Z",
+			"itemHash": "e8a6246684caf450d9c77591244b13d8fee051d4e0ff6c1746724c1f80c311e3",
+			"files": {
+				"src/lib/components/agents/image-generation/context.ts": "d7c7ed77c7aaed511d4e8744451bb58636dae4bf7da09fb98dfc1faa91e9bdba",
+				"src/lib/components/agents/image-generation/dither.ts": "865c9c54e606ccb75fbd8b9e6aa161ff4bb486fe95712a3fd88ce42e7a290c23",
+				"src/lib/components/agents/image-generation/image-generation-badge.svelte": "768d1cd39124859cc250a56cd107c8b0f54bae838bc9b1e8376dd236fc566708",
+				"src/lib/components/agents/image-generation/image-generation-caption.svelte": "b488fb9cb9bc24ea5b77c6208af47b1325dce89d76496a9b835230bd6a257515",
+				"src/lib/components/agents/image-generation/image-generation-field.svelte": "a64e8d60a489115d654f313b1ab5914984ff05b151685071786a29832cc718a2",
+				"src/lib/components/agents/image-generation/image-generation-frame.svelte": "2e260181cb8d04efdac8c154edbdc54f5b0b09c4f4682fcac186e05f7866aa3c",
+				"src/lib/components/agents/image-generation/image-generation-media.svelte": "2b2120bd80421be262f67cea2e77a5599ad6ce9eebc6789a29ea319607e24cf3",
+				"src/lib/components/agents/image-generation/image-generation-prompt.svelte": "d5c5171427f9e58e4caf2be3ea48d00bc5ad08ebaee97b8034d969bf971ec2f5",
+				"src/lib/components/agents/image-generation/image-generation-retry.svelte": "003b274687738d52f1229a52bbbacb161087bb4f26292de488b06bfbc64309e9",
+				"src/lib/components/agents/image-generation/image-generation-status.svelte": "2593c507b7f0ff1465ee107e3558a412bfe7504f933d98f7b6d91efedb1ab202",
+				"src/lib/components/agents/image-generation/image-generation.svelte": "375fdc90368f458e46fabb1e3467491dd3e60ac2cfdf89d70ccc625874a86995",
+				"src/lib/components/agents/image-generation/index.ts": "cf3cdc44528a854b04c2f904f7a4e7c9464c5bf81e7751be1401c1ba24694262",
+				"src/lib/components/agents/image-generation/variants.ts": "138624c44005c7f752c962b2bdf78daeef87acfb20d530ea7067506fbb6d6404"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/button.json",
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
 		"https://baby-ui.pages.dev/svelte/r/input.json": {
 			"name": "input",
 			"type": "registry:ui",
@@ -725,6 +780,35 @@
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},
+		"https://baby-ui.pages.dev/svelte/r/sheet.json": {
+			"name": "sheet",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-21T06:12:12.863Z",
+			"itemHash": "c458011b6638b3146e093052f99055bafa4e35dcfcbea27116f3b6c55be0bc6f",
+			"files": {
+				"src/lib/cn.ts": "0fca478853f3fc4310e40ebff727a53da7ec677938f4e3e0d5ecaa62e936a199",
+				"src/lib/components/ui/sheet/index.ts": "745f6d9be843355d31c9d059439e10ba2b2822fcbd51605af35afd8ef1e0aac0",
+				"src/lib/components/ui/sheet/sheet-close.svelte": "d9ef588eedc04578e94488e9eb33c05f0e7d025dd1a28e07eacd1700b24798fa",
+				"src/lib/components/ui/sheet/sheet-content.svelte": "f36ac515afb741252982a41201a6acbbb96ee71294ab9ff61ba58ede6417a9b0",
+				"src/lib/components/ui/sheet/sheet-description.svelte": "3085e885ddf1500e5447f5db8f26e9ae8d1ef609dc034d3da3e8f074d807077c",
+				"src/lib/components/ui/sheet/sheet-footer.svelte": "4bd8edc3b81a767781e5250f0ccfce467326a5a58bf28658108f5ed87c54588e",
+				"src/lib/components/ui/sheet/sheet-header.svelte": "7525bb7bc414a41a4f11dd1a278e0aaa10aec22b510126ec37cf438b561f4ae3",
+				"src/lib/components/ui/sheet/sheet-title.svelte": "24221e45ce00f488b799d5603fef09335d214cbe13cecfde82ff84ec94c300ca",
+				"src/lib/components/ui/sheet/sheet-trigger.svelte": "edbe1cb2d91234183e9dfe6a8d746669718d0a6b1d7511d190e3ea90d4dabba3",
+				"src/lib/components/ui/sheet/sheet.svelte": "c4637c7eadcf6f9bf12c8b297aaf10df49686069625905c71c2be909411fde19",
+				"src/lib/components/ui/sheet/variants.ts": "b61107d7dfdc892dfe3499ac4e9c875dc99959f3863cc387c5f4244d95938456"
+			},
+			"dependencies": [
+				"bits-ui",
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
 		"https://baby-ui.pages.dev/svelte/r/shortcut-recorder.json": {
 			"name": "shortcut-recorder",
 			"type": "registry:ui",
@@ -824,6 +908,27 @@
 				"src/lib/components/ui/spinner/index.ts": "eb26b4c21b0bb146ab2e66564780775895c2679e806e2cb1b66637a66defb68b",
 				"src/lib/components/ui/spinner/spinner.svelte": "1cf05cceaf9b8cb72d57016615308d5cc7a8fa646e5f417f2631648c89b644bb",
 				"src/lib/components/ui/spinner/variants.ts": "bf1d45f88e1a6c45f6da0b27435ce10ff0be0f83adfb641b32cb679160590e07"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
+		"https://baby-ui.pages.dev/svelte/r/stepper.json": {
+			"name": "stepper",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-21T06:04:08.500Z",
+			"itemHash": "26e2fcd171ff0a5aa9bf4577d49b026cb0577dce748bc2866083ed2f6715f9dd",
+			"files": {
+				"src/lib/components/ui/stepper/index.ts": "81a027574c62feff671b1ce0df4542c43b7674723bc82f988b55284129a5ab74",
+				"src/lib/components/ui/stepper/stepper.svelte": "78a03ee5666c7669e42e4a10636b09a38c9e7c23b954e9643c8f0a9c2e241c28",
+				"src/lib/components/ui/stepper/steps.ts": "b26bf73c0ebc32db41ea75924dceb4a62f50d16dad6c3b6fd84bd67179bad5d4",
+				"src/lib/components/ui/stepper/variants.ts": "67fd958322ea43b0079c2ae1d884a0abb9f42946774ba868d0a3106db07496ab"
 			},
 			"dependencies": [
 				"clsx",
@@ -1086,6 +1191,27 @@
 			},
 			"dependencies": [
 				"bits-ui",
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
+		"https://baby-ui.pages.dev/svelte/r/voice-orb.json": {
+			"name": "voice-orb",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-21T06:04:08.500Z",
+			"itemHash": "2dc75c514ffba6477ac559e2baf24dcee9f9aa9afbddc4401421613faac9b9fd",
+			"files": {
+				"src/lib/components/agents/voice-orb/index.ts": "4f421028fbe8efc0faceae3ef89bb15aa5449362954a3b7049c4379e7521f626",
+				"src/lib/components/agents/voice-orb/renderer.ts": "cdd4d14205f42a2c8a3cd5c02ff61c0d537a7ef13f2ecaa1f522894497332f76",
+				"src/lib/components/agents/voice-orb/variants.ts": "29f7107feaec3058dee99bbcf54e3860d512f49b851f5e55443e33a201aa66d3",
+				"src/lib/components/agents/voice-orb/voice-orb.svelte": "909b97d7d7c4e763bac0cbdb0453325228f75a6efb4c7f5cbf6e844c3e290cbe"
+			},
+			"dependencies": [
 				"clsx",
 				"tailwind-merge",
 				"tailwind-variants"

@@ -21,6 +21,7 @@
   import { memory } from "#lib/memory-settings.svelte.js";
   import { speech } from "#lib/speech.svelte.js";
   import { dictation } from "#lib/settings.svelte.js";
+  import DictationOrb from "#lib/components/app/dictation-orb.svelte";
   import FileTranscribe from "#lib/components/app/file-transcribe.svelte";
   import HistoryList from "#lib/components/app/history-list.svelte";
   import PageHeader from "#lib/components/app/page-header.svelte";
@@ -36,6 +37,7 @@
   import { ShortcutRecorder } from "#lib/components/ui/shortcut-recorder/index.js";
   import { Switch } from "#lib/components/ui/switch/index.js";
   import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
+  import { CopyButton } from "#lib/components/ui/copy-button/index.js";
   import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#lib/components/ui/collapsible/index.js";
   import { TagInput } from "#lib/components/ui/tag-input/index.js";
   import { Textarea } from "#lib/components/ui/textarea/index.js";
@@ -78,6 +80,11 @@
     { value: "ctrl_enter", label: "Ctrl+Enter" },
     ...(isMac() ? [{ value: "cmd_enter" as AutoSubmitKey, label: "Cmd+Enter" }] : []),
   ];
+
+  // The newest dictation (not a transcribed file), shown from History so it never depends on a
+  // paste landing in this window.
+  const latest = $derived(speech.history.find((h) => !speech.fileJobs.includes(h.id)));
+  const latestText = $derived(latest ? latest.post_processed_text || latest.transcription_text : "");
 
   const mics = $derived([
     { value: "Default", label: "System default" },
@@ -209,7 +216,7 @@
         </Collapsible>
       {:else}
         {#if speech.needsAccess}
-          <section class="flex flex-col gap-4 rounded-2xl bg-card p-5">
+          <section class="flex flex-col gap-4 rounded-2xl bg-card p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
             <header class="flex items-start gap-3">
               <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning-strong">
                 <ShieldCheckIcon size={20} />
@@ -241,7 +248,7 @@
         {/if}
 
         {#if speech.needsSetup && setup}
-          <section class="flex flex-col gap-4 rounded-2xl bg-card p-5">
+          <section class="flex flex-col gap-4 rounded-2xl bg-card p-5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
             <header class="flex items-start gap-3">
               <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <MicrophoneIcon size={20} />
@@ -329,9 +336,19 @@
           </SettingRow>
         </SettingsGroup>
 
-        <section class="flex flex-col gap-3">
+        <section class="flex flex-col gap-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300">
           <SectionHeader title="Try it" description="Click in the box, hold your shortcut, and say something." />
+          <DictationOrb hint="Hold your shortcut and speak" />
           <Textarea placeholder="Your words appear here" rows={3} aria-label="Try dictation here" />
+          {#if latestText}
+            <div class="flex items-start justify-between gap-3 rounded-2xl bg-card p-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-300">
+              <div class="min-w-0">
+                <div class="text-sm text-muted-foreground">Latest dictation</div>
+                <p class="mt-1 text-pretty whitespace-pre-wrap">{latestText}</p>
+              </div>
+              <CopyButton text={latestText} iconOnly label="Copy text" />
+            </div>
+          {/if}
           {#if speech.lastRun}
             {@const r = speech.lastRun}
             <p class="px-1 text-sm text-muted-foreground tabular-nums">

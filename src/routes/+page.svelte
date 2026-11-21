@@ -55,8 +55,10 @@
     <ChatComposer />
   </main>
 {:else}
-  <main class="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 px-6 pb-6">
-    <div class="min-h-0 flex-1">
+  <main class="mx-auto flex h-full w-full max-w-5xl flex-col gap-4 px-6 pb-6">
+    <!-- Decision (product): the transcript is wider than the box you type in. Bubbles are sized
+         against this container, not the window, so they stay readable at any width. -->
+    <div class="@container min-h-0 flex-1">
       <Conversation class="h-full">
         <ConversationContent>
           {#each chat.messages as m, i (m.id)}
@@ -65,8 +67,8 @@
             {@const images = imagesOf(m)}
             {@const streaming = m.status === "streaming"}
             {#if m.role === "user"}
-              <Message align="end" aria-label="You">
-                <MessageContent>
+              <Message align="end" aria-label="You" animated={m.fresh === true}>
+                <MessageContent class="max-w-[80cqw]">
                   {#if images.length > 0}
                     <Attachments variant="wrap">
                       {#each images as path (path)}
@@ -82,8 +84,8 @@
                 </MessageContent>
               </Message>
             {:else}
-              <Message align="start" aria-label="Assistant">
-                <MessageContent class="w-full">
+              <Message align="start" aria-label="Assistant" animated={m.fresh === true}>
+                <MessageContent class="w-full max-w-[80cqw]">
                   {#if thoughts}
                     <Reasoning thinking={streaming && !text} duration={m.thinkingSeconds ?? 0}>
                       <p class="text-sm whitespace-pre-wrap text-muted-foreground">{thoughts}</p>
@@ -131,7 +133,9 @@
         <ConversationScrollButton />
       </Conversation>
     </div>
-    <EngineBanner />
-    <ChatComposer />
+    <div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <EngineBanner />
+      <ChatComposer />
+    </div>
   </main>
 {/if}

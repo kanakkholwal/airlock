@@ -1,10 +1,15 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { DangerTriangleIcon, GhostIcon } from "@solar-icons/svelte/linear";
   import StateView from "#lib/components/app/state-view.svelte";
   import { Button } from "#lib/components/ui/button/index.js";
+  import { unlockPage } from "#lib/unlock-ui.js";
   import { CopyButton } from "#lib/components/ui/copy-button/index.js";
+
+  // A crash behind an open dialog or sheet leaves the page locked; free it.
+  onMount(unlockPage);
 
   const missing = $derived(page.status === 404);
   const details = $derived(`${page.status} ${page.error?.message ?? ""}`.trim());

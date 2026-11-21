@@ -201,6 +201,10 @@ impl LlmEngine {
     }
 
     /// Hold while a request is running so the model cannot unload under it.
+    pub fn is_busy(&self) -> bool {
+        self.active.load(Ordering::SeqCst) > 0
+    }
+
     pub fn begin(self: &Arc<Self>) -> BusyGuard {
         self.active.fetch_add(1, Ordering::SeqCst);
         self.touch();

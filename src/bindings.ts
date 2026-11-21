@@ -914,6 +914,87 @@ async speedTestChat() : Promise<Result<SpeedResult[], string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async imageEngines() : Promise<Result<ImageEngineStatus[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_engines") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageInstallEngine(backend: Backend, onEvent: TAURI_CHANNEL<DownloadEvent>) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_install_engine", { backend, onEvent }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageRemoveEngine(backend: Backend) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_remove_engine", { backend }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageModels() : Promise<Result<ImageModelStatus[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_models") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageDownload(id: string, onEvent: TAURI_CHANNEL<DownloadEvent>) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_download", { id, onEvent }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageDownloadCancel(id: string) : Promise<void> {
+    await TAURI_INVOKE("image_download_cancel", { id });
+},
+/**
+ * Removes this model's files, keeping any part another downloaded model still uses.
+ */
+async imageDeleteModel(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_delete_model", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageGenerate(req: GenerateRequest, onEvent: TAURI_CHANNEL<ImageEvent>) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_generate", { req, onEvent }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageCancel() : Promise<void> {
+    await TAURI_INVOKE("image_cancel");
+},
+async imageList() : Promise<Result<ImageInfo[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async imageDelete(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("image_delete", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Check if Apple Intelligence is available on this device.
  * Called by the frontend when the user selects Apple Intelligence provider.
@@ -1338,6 +1419,12 @@ async dismissNotice(source: NoticeSource, code: NoticeCode) : Promise<void> {
  */
 async dismissOverlayNotice() : Promise<void> {
     await TAURI_INVOKE("dismiss_overlay_notice");
+},
+/**
+ * The Dictation page turns this on while its voice orb is visible.
+ */
+async watchMicLevels(on: boolean) : Promise<void> {
+    await TAURI_INVOKE("watch_mic_levels", { on });
 }
 }
 
@@ -1512,6 +1599,7 @@ export type DownloadEvent = { type: "progress"; downloaded: number; total: numbe
 export type EngineState = { state: "stopped" } | { state: "loading"; model: string; backend: Backend } | { state: "ready"; model: string; backend: Backend; port: number; context: number } | { state: "failed"; reason: string }
 export type EngineStatus = { backend: Backend; label: string; size_bytes: number; installed: boolean; recommended: boolean }
 export type FileState = { state: "not_downloaded" } | { state: "partial"; downloaded: number } | { state: "downloaded" }
+export type GenerateRequest = { prompt: string; model: string; width: number; height: number; steps: number | null; seed: number | null }
 export type GpuDeviceOption = { id: string; name: string; total_vram_mb: number }
 export type HfFile = { name: string; size_bytes: number; 
 /**
@@ -1539,6 +1627,26 @@ language: string | null;
  */
 language_source: LanguageSource | null }
 export type HistoryUpdatePayload = { action: "added"; entry: HistoryEntry } | { action: "updated"; entry: HistoryEntry } | { action: "deleted"; id: number } | { action: "toggled"; id: number }
+export type ImageEngineStatus = { backend: Backend; label: string; size_bytes: number; installed: boolean; recommended: boolean }
+export type ImageEvent = 
+/**
+ * Waiting for a chat reply to finish before starting.
+ */
+{ type: "queued" } | 
+/**
+ * The chat model is being unloaded and the engine started.
+ */
+{ type: "starting" } | { type: "progress"; step: number; total: number } | 
+/**
+ * One real line from the engine's own log, so the screen shows what it is doing.
+ */
+{ type: "log"; line: string } | { type: "done"; image: ImageInfo } | { type: "cancelled" } | { type: "error"; message: string }
+export type ImageInfo = { id: string; path: string; prompt: string; model: string; width: number; height: number; steps: number; seed: number; created_ms: number }
+export type ImageModelStatus = { id: string; name: string; description: string; size_bytes: number; 
+/**
+ * Bytes still to download, shared parts already on disk excluded.
+ */
+missing_bytes: number; license: string; recommended: boolean; downloaded: boolean }
 /**
  * Result of changing keyboard implementation
  */

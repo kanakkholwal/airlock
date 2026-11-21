@@ -152,7 +152,7 @@ fn engines_dir(app: &AppHandle) -> Result<PathBuf, String> {
     super::paths::engines_dir(app)
 }
 
-fn extract(archive: &Path, dest: &Path) -> Result<(), String> {
+pub(crate) fn extract(archive: &Path, dest: &Path) -> Result<(), String> {
     let file = std::fs::File::open(archive).map_err(|e| e.to_string())?;
     let name = archive.to_string_lossy();
     if name.ends_with(".zip") {

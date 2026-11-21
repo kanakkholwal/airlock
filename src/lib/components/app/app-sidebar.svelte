@@ -1,10 +1,12 @@
 <script lang="ts">
+  import HoverMarquee from "#lib/components/app/hover-marquee.svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { exit } from "@tauri-apps/plugin-process";
   import {
     ChatLineIcon,
+    GalleryIcon,
     CpuIcon,
     FolderOpenIcon,
     GlobalIcon,
@@ -56,6 +58,7 @@
 
   const nav = [
     { href: "/dictation", label: "Dictation", icon: dictationIcon },
+    { href: "/images", label: "Images", icon: imagesIcon },
     { href: "/models", label: "Models", icon: modelsIcon },
     { href: "/settings", label: "Settings", icon: settingsIcon },
   ];
@@ -120,6 +123,7 @@
 />
 
 {#snippet dictationIcon()}<MicrophoneIcon size={18} />{/snippet}
+{#snippet imagesIcon()}<GalleryIcon size={18} />{/snippet}
 {#snippet modelsIcon()}<CpuIcon size={18} />{/snippet}
 {#snippet settingsIcon()}<SettingsIcon size={18} />{/snippet}
 
@@ -229,7 +233,7 @@
                           title={c.title}
                           onclick={() => openChat(c.id)}
                         >
-                          <span class="truncate">{c.title}</span>
+                          <HoverMarquee text={c.title} class="flex-1 text-start" />
                         </button>
                         <div
                           class="absolute inset-y-0 right-1 flex items-center opacity-0 transition-opacity duration-100 group-focus-within/chat:opacity-100 group-hover/chat:opacity-100 has-[[data-state=open]]:opacity-100"

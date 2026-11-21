@@ -821,23 +821,23 @@ pub fn update_overlay_enabled_cache(enabled: bool) {
     OVERLAY_ENABLED.store(enabled, Ordering::Relaxed);
 }
 
+/// True while the main window's Dictation page shows the voice orb and wants the levels too.
+static MAIN_WANTS_LEVELS: AtomicBool = AtomicBool::new(false);
+
+pub fn set_main_wants_levels(on: bool) {
+    MAIN_WANTS_LEVELS.store(on, Ordering::Relaxed);
+}
+
 pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
-    // Skip emission when the overlay is disabled. The recording_overlay
-    // window is created at boot regardless of overlay_style, so without this
-    // guard a hidden overlay's WebKit subprocess still
-    // processes every event. Each event drives some kind of WebKit
-    // C++ allocation that accumulates without bound (mechanism not
-    // directly characterized; see issue #1279 for the investigation).
-    // For users with `overlay_style: none` (the Linux default) this skip
-    // eliminates the upstream driver of that accumulation.
-    if !OVERLAY_ENABLED.load(Ordering::Relaxed) {
+    // Skip emission when nobody listens. A hidden overlay's WebKit subprocess leaks memory on
+    // every event (Handy issue #1279), so the overlay only gets levels while it is enabled.
+    let overlay = OVERLAY_ENABLED.load(Ordering::Relaxed);
+    let main = MAIN_WANTS_LEVELS.load(Ordering::Relaxed);
+    if !overlay && !main {
         return;
     }
 
-    // Throttle to ~30 FPS. Even with the overlay enabled, the raw audio
-    // callback fires far faster than the UI needs; capping emission rate
-    // cuts the per-frame `eval_script`/IPC volume that drives the wry
-    // memory growth in issue #1279 (upstream tauri-apps/wry#1489).
+    // Throttle to ~30 FPS: the raw audio callback is far faster than any UI needs (wry#1489).
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -848,16 +848,13 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
     }
     LAST_MIC_LEVEL_EMIT.store(now, Ordering::Relaxed);
 
-    // Target only the overlay window. In Tauri 2 both `AppHandle::emit`
-    // and `WebviewWindow::emit` broadcast to all webviews; Tauri's
-    // listener filter then skips webviews with no registered listener
-    // for the event, so the settings webview never received `mic-level`.
-    // But the previous dual-call pattern still produced two `eval_script`
-    // calls to the overlay per audio callback (one from each .emit()).
-    // `emit_to` with the overlay's window label produces a single
-    // eval_script call per callback, cutting the per-callback WebKit
-    // dispatch work in half.
-    let _ = app_handle.emit_to("recording_overlay", "mic-level", levels);
+    // emit_to targets one window; a plain emit would broadcast and double the webview work.
+    if overlay {
+        let _ = app_handle.emit_to("recording_overlay", "mic-level", levels);
+    }
+    if main {
+        let _ = app_handle.emit_to("main", "mic-level", levels);
+    }
 }
 
 #[cfg(test)]

@@ -1,8 +1,10 @@
 <script lang="ts">
   import { MenuDotsIcon } from "@solar-icons/svelte/linear";
+  import LoadedModels from "#lib/components/app/loaded-models.svelte";
+  import ChatStats from "#lib/components/app/chat-stats.svelte";
+  import HoverMarquee from "#lib/components/app/hover-marquee.svelte";
   import { chat } from "#lib/chat.svelte.js";
   import { llm } from "#lib/llm.svelte.js";
-  import SpeedTest from "#lib/components/app/speed-test.svelte";
   import DeleteChatDialog from "#lib/components/app/delete-chat-dialog.svelte";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
@@ -50,7 +52,7 @@
         autofocus
       />
     {:else}
-      <h1 class="min-w-0 truncate text-sm font-medium">{title}</h1>
+      <h1 class="min-w-0 text-sm font-medium"><HoverMarquee text={title} /></h1>
     {/if}
 
     {#if canManage && !renaming}
@@ -76,7 +78,10 @@
     {/if}
   </div>
 
-  <SpeedTest run={llm.speedRunner} available={["chat"]} />
+  <div class="flex shrink-0 items-center gap-1">
+    <ChatStats />
+    <LoadedModels />
+  </div>
 </header>
 
 <DeleteChatDialog bind:open={confirmDelete} id={chat.conversationId} title={chat.currentTitle ?? "This chat"} />

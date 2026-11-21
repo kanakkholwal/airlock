@@ -8,7 +8,7 @@
   import ExploreModels from "#lib/components/app/explore-models.svelte";
   import SpeechModels from "#lib/components/app/speech-models.svelte";
   import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
-  import { CpuBoltIcon, DangerTriangleIcon, MonitorIcon } from "@solar-icons/svelte/linear";
+  import { ChatLineIcon, CpuBoltIcon, DangerTriangleIcon, EyeIcon, MonitorIcon } from "@solar-icons/svelte/linear";
   import { inTauri } from "#lib/env.js";
   import CardSkeleton from "#lib/components/app/card-skeleton.svelte";
   import PageHeader from "#lib/components/app/page-header.svelte";
@@ -18,7 +18,7 @@
   import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
-  import { Progress } from "#lib/components/ui/progress/index.js";
+  import DownloadProgress from "#lib/components/app/download-progress.svelte";
 
   // The tab lives in the URL, so other screens can link straight to Speech or Explore.
   const tab = $derived(page.url.searchParams.get("tab") ?? "chat");
@@ -136,10 +136,11 @@
     <ul class="flex flex-col gap-2">
       {#each llm.engines as e (e.backend)}
         {@const dl = llm.downloads[`engine:${e.backend}`]}
-        <li class="flex flex-col gap-3 rounded-2xl bg-card p-4">
+        <li class="flex flex-col gap-3 rounded-2xl bg-card p-4 transition-colors duration-150 hover:bg-muted/60">
           <div class="flex items-center justify-between gap-4">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
+                <CpuBoltIcon size={16} class="shrink-0 text-muted-foreground" />
                 <span class="font-medium">{e.label}</span>
                 {#if e.recommended}<Badge size="sm">Recommended</Badge>{/if}
                 {#if e.installed}<Badge size="sm" variant="success">Installed</Badge>{/if}
@@ -164,13 +165,7 @@
             </div>
           </div>
           {#if dl}
-            <Progress
-              value={dl.total > 0 ? (dl.downloaded / dl.total) * 100 : 0}
-              indeterminate={dl.total === 0 || dl.phase === "verifying"}
-              helper={dl.phase === "verifying"
-                ? "Verifying"
-                : `${mb(dl.downloaded)} of ${mb(dl.total)} · ${(dl.bytesPerSecond / 1_048_576).toFixed(1)} MB/s`}
-            />
+            <DownloadProgress compact title="Download" downloaded={dl.downloaded} total={dl.total} bytesPerSecond={dl.bytesPerSecond} phase={dl.phase} />
           {/if}
         </li>
       {/each}
@@ -183,10 +178,11 @@
     {#each llm.models as m (m.id)}
       {@const dl = llm.downloads[m.id]}
       {@const check = memory[m.id]}
-      <li class="flex flex-col gap-3 rounded-2xl bg-card p-4">
+      <li class="flex flex-col gap-3 rounded-2xl bg-card p-4 transition-colors duration-150 hover:bg-muted/60">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
+              {#if m.vision}<EyeIcon size={16} class="shrink-0 text-muted-foreground" />{:else}<ChatLineIcon size={16} class="shrink-0 text-muted-foreground" />{/if}
               <span class="font-medium">{m.name}</span>
               {#if m.recommended}<Badge size="sm">Recommended</Badge>{/if}
               {#if m.vision}<Badge size="sm" variant="info">Vision</Badge>{/if}
@@ -242,13 +238,7 @@
         </div>
 
         {#if dl}
-          <Progress
-            value={dl.total > 0 ? (dl.downloaded / dl.total) * 100 : 0}
-            indeterminate={dl.total === 0 || dl.phase === "verifying"}
-            helper={dl.phase === "verifying"
-              ? "Verifying"
-              : `${mb(dl.downloaded)} of ${mb(dl.total)} · ${(dl.bytesPerSecond / 1_048_576).toFixed(1)} MB/s`}
-          />
+          <DownloadProgress compact title="Download" downloaded={dl.downloaded} total={dl.total} bytesPerSecond={dl.bytesPerSecond} phase={dl.phase} />
         {:else if m.file.state === "partial"}
           <p class="text-sm text-muted-foreground">{mb(m.file.downloaded)} downloaded</p>
         {/if}

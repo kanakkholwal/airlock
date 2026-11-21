@@ -53,6 +53,9 @@ class SpeechStore {
   fileProblems = $state<{ name: string; error: string }[]>([]);
   /** Timing of the latest dictation, so CPU and GPU can be compared by eye. */
   lastRun = $state<{ audioSeconds: number; waitSeconds: number } | null>(null);
+  /** The speech model held in memory right now, and whether one is loading. */
+  loadedModel = $state<string | null>(null);
+  loadingModel = $state(false);
   /** True while the one-button setup runs. */
   settingUp = $state(false);
   private started = false;
@@ -111,6 +114,10 @@ class SpeechStore {
       listen("model-download-cancelled", refresh),
       listen("model-deleted", refresh),
       listen("models-updated", refresh),
+      listen<{ event_type: string }>("model-state-changed", (e) => {
+        this.loadingModel = e.payload.event_type === "loading_started";
+        void this.refreshLoaded();
+      }),
       events.historyUpdatePayload.listen((e) => this.onHistory(e.payload)),
       events.transcriptionCompleteEvent.listen((e) => {
         if (e.payload.audio_seconds > 0) {
@@ -121,7 +128,7 @@ class SpeechStore {
         this.jobs[e.payload.entry_id] = e.payload.status;
       }),
     ]);
-    await Promise.all([this.refreshModels(), this.refreshMics(), this.refreshPermission()]);
+    await Promise.all([this.refreshModels(), this.refreshMics(), this.refreshPermission(), this.refreshLoaded()]);
     await this.adoptDownloadedModel();
     this.loaded = true;
     void this.loadHistory(true);
@@ -161,6 +168,17 @@ class SpeechStore {
     this.current = cur.status === "ok" && cur.data ? cur.data : null;
     // Finished or cancelled downloads no longer need a progress bar.
     for (const m of this.models) if (!m.is_downloading) delete this.progress[m.id];
+  }
+
+  async refreshLoaded() {
+    const res = await commands.getModelLoadStatus();
+    if (res.status === "ok") this.loadedModel = res.data.is_loaded ? res.data.current_model : null;
+  }
+
+  async unload() {
+    const res = await commands.unloadModelManually();
+    if (res.status === "error") this.error = res.error;
+    await this.refreshLoaded();
   }
 
   async refreshMics() {

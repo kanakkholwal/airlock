@@ -21,6 +21,7 @@ import {
   type EngineState as ChatEngine,
   type Usage,
 } from "./chat.svelte";
+import { images } from "./images.svelte";
 import { pickAutoModel } from "./model-pick";
 import type { SpeedTarget } from "./speed";
 
@@ -117,6 +118,8 @@ class LlmStore {
   /** Loads a model after checking it fits in memory; the failure shows in `error`. */
   async switchTo(id: string) {
     if (this.current?.id === id) return;
+    // Decision (product): chat queues behind a running image instead of fighting it for memory.
+    await images.idle();
     const check = await this.memory(id);
     if (check && !check.fits) {
       const gb = (b: number) => (b / 1_073_741_824).toFixed(1);
@@ -345,6 +348,25 @@ class LlmStore {
   async memory(id: string): Promise<MemoryCheck | null> {
     const res = await commands.llmMemoryCheck(id);
     return res.status === "ok" ? res.data : null;
+  }
+
+  /** Latest speed test of the loaded chat model, for the in-memory popover. */
+  speed = $state<{ model: string; value: number } | null>(null);
+  testingSpeed = $state(false);
+
+  async testSpeed() {
+    const run = this.speedRunner;
+    const model = this.current?.id;
+    if (!run || !model || this.testingSpeed) return;
+    this.testingSpeed = true;
+    try {
+      const [r] = await run("chat");
+      this.speed = { model, value: r.value };
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.testingSpeed = false;
+    }
   }
 
   /** Speed test runner for the header dropdown; null until the engine is ready. */

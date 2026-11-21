@@ -15,6 +15,8 @@ export type ChatMessage = {
   promptTokens?: number;
   completionTokens?: number;
   firstTokenMs?: number;
+  /** Made in this session by sending or regenerating; messages loaded from history are not. */
+  fresh?: boolean;
 };
 
 export type EngineState = "unavailable" | "loading" | "ready" | "error";
@@ -193,6 +195,7 @@ class ChatSession {
       role: "user",
       parts,
       status: this.engine === "ready" ? "done" : "queued",
+      fresh: true,
     };
     this.messages.push(msg);
     this.save("user", $state.snapshot(parts), text);
@@ -291,7 +294,7 @@ class ChatSession {
     if (!hasQueued && last?.role !== "user") return;
     for (const m of this.messages) if (m.status === "queued") m.status = "done";
 
-    this.messages.push({ id: this.nextId++, role: "assistant", parts: [], status: "streaming" });
+    this.messages.push({ id: this.nextId++, role: "assistant", parts: [], status: "streaming", fresh: true });
     const live = this.messages[this.messages.length - 1];
     this.abort = new AbortController();
 

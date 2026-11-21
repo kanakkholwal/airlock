@@ -10,6 +10,7 @@ mod dictation;
 use dictation::{actions, overlay, secure_input, shortcut, transcription_coordinator};
 pub mod engine_supervisor;
 mod helpers;
+mod image;
 mod language_detection;
 mod languages;
 mod llm;
@@ -219,6 +220,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(tray::TrayState::new());
     llm::commands::manage(app_handle);
     llm::models::manage(app_handle);
+    image::manage(app_handle);
     if let Err(e) = chat::commands::manage(app_handle) {
         log::error!("Chat database unavailable: {e}");
     }
@@ -831,6 +833,17 @@ pub fn run(cli_args: CliArgs) {
             llm::commands::chat_title,
             llm::attachments::chat_attach_image,
             llm::commands::speed_test_chat,
+            image::engine::image_engines,
+            image::engine::image_install_engine,
+            image::engine::image_remove_engine,
+            image::models::image_models,
+            image::models::image_download,
+            image::models::image_download_cancel,
+            image::models::image_delete_model,
+            image::generate::image_generate,
+            image::generate::image_cancel,
+            image::generate::image_list,
+            image::generate::image_delete,
             commands::check_apple_intelligence_available,
             commands::initialize_enigo,
             commands::initialize_shortcuts,
@@ -885,6 +898,7 @@ pub fn run(cli_args: CliArgs) {
             notices::get_active_notices,
             notices::dismiss_notice,
             notices::dismiss_overlay_notice,
+            notices::watch_mic_levels,
         ])
         .events(collect_events![
             managers::history::HistoryUpdatePayload,
@@ -1055,10 +1069,20 @@ pub fn run(cli_args: CliArgs) {
 
             // Create main window programmatically so we can set data_directory
             // for portable mode (redirects WebView2 cache to portable Data dir)
+            let opening = app
+                .primary_monitor()
+                .ok()
+                .flatten()
+                .map(|m| {
+                    let scale = m.scale_factor();
+                    utils::opening_size((m.size().width as f64 / scale, m.size().height as f64 / scale))
+                })
+                .unwrap_or((1200.0, 800.0));
             let mut win_builder =
                 tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
                     .title("Airlock")
-                    .inner_size(utils::MAIN_WINDOW_SIZE.0, utils::MAIN_WINDOW_SIZE.1)
+                    .inner_size(opening.0, opening.1)
+                    .center()
                     .min_inner_size(utils::MAIN_WINDOW_SIZE.0, utils::MAIN_WINDOW_SIZE.1)
                     .resizable(true)
                     .maximizable(true)
@@ -1081,9 +1105,10 @@ pub fn run(cli_args: CliArgs) {
             {
                 let bar = utils::measure_title_bar(&main_window);
                 if bar > 0.0 {
-                    let (width, height) = utils::MAIN_WINDOW_SIZE;
+                    let (width, height) = opening;
                     let size = tauri::LogicalSize::new(width, height + bar);
-                    let _ = main_window.set_min_size(Some(size));
+                    let (min_w, min_h) = utils::MAIN_WINDOW_SIZE;
+                    let _ = main_window.set_min_size(Some(tauri::LogicalSize::new(min_w, min_h + bar)));
                     let _ = main_window.set_size(size);
                     let _ = main_window.center();
                 }

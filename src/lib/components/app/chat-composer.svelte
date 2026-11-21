@@ -2,7 +2,6 @@
   import { chat } from "#lib/chat.svelte.js";
   import { draft } from "#lib/draft.svelte.js";
   import { llm } from "#lib/llm.svelte.js";
-  import ChatStats from "#lib/components/app/chat-stats.svelte";
   import {
     Attachment,
     AttachmentContent,
@@ -104,7 +103,6 @@
     <ComposerInput placeholder="Ask anything" minRows={3} />
     <ComposerToolbar>
       <ComposerActions actions={attachActions} onAction={() => draft.pickImages()} label="Add to message" />
-      <ChatStats />
       <div class="ms-auto flex items-center gap-1">
         {#if models.length > 0}
           <ComposerModelSelect

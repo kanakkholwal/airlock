@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import { DangerCircleIcon } from "@solar-icons/svelte/linear";
+  import { DangerCircleIcon, MicrophoneIcon } from "@solar-icons/svelte/linear";
   import { commands } from "../../bindings";
   import { noticeDisplay } from "#lib/dictation/notices.js";
   import { isNoticeState, OverlaySession } from "#lib/dictation/overlay.svelte.js";
@@ -81,7 +81,10 @@
 
   const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   const transcribingLabel = $derived(o.modelLoading ? "Loading model…" : "Transcribing…");
-  const bar = (v: number) => `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`;
+  // One smooth 0 to 1 loudness for the meter, from the same samples the old bars used.
+  const level = $derived(
+    o.levels.length ? Math.min(1, Math.pow(o.levels.reduce((a, b) => a + b, 0) / o.levels.length, 0.6) * 1.8) : 0,
+  );
 
   function onStreamScroll() {
     if (!capEl) return;
@@ -122,10 +125,9 @@
 
 {#snippet listeningRow(showTimer: boolean)}
   <div class="sbase">
-    <div class="sbase-l"><span class="sdot {o.captureReady ? 'ready' : 'arming'}"></span></div>
-    <div class="swave {o.captureReady ? 'ready' : 'arming'}">
-      {#each o.levels as v, i (i)}<i style="height: {bar(v)}"></i>{/each}
-    </div>
+    <MicrophoneIcon size={16} class="sicon {o.captureReady ? 'ready' : 'arming'}" />
+    <span class="slabel">{o.captureReady ? "Listening" : "Starting"}</span>
+    <div class="smeter" aria-hidden="true"><i style="transform: scaleX({o.captureReady ? Math.max(0.04, level) : 0.04})"></i></div>
     <div class="sbase-r">
       {#if showTimer}<span class="stimer">{fmtTime(o.elapsed)}</span>{/if}
       {@render cancelBtn()}
@@ -135,8 +137,8 @@
 
 {#snippet workingRow(label: string)}
   <div class="sbase">
-    <div class="sbase-l"><span class="sspinner"></span></div>
-    <span class="swork-label">{label}</span>
+    <span class="slabel">{label}</span>
+    <div class="smeter busy" aria-hidden="true"><i></i></div>
     <div class="sbase-r">{@render cancelBtn()}</div>
   </div>
 {/snippet}
@@ -167,8 +169,6 @@
                   {#if noticeText}<span class="ndetail">{noticeText}</span>{/if}
                   <span class="committed">{o.streamText.committed ? o.streamText.committed + " " : ""}</span>
                   <span class="tentative">{o.streamText.tentative}</span>
-                  <!-- No caret once finalizing: it is no longer capturing, and the spinner says so. -->
-                  {#if !liveWorking && !loadingNotice && !liveNotice}<span class="scaret"></span>{/if}
                 </p>
               </div>
             </div>

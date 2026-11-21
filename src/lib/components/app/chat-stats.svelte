@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ChartSquareIcon } from "@solar-icons/svelte/linear";
   import { chat } from "#lib/chat.svelte.js";
   import { llm } from "#lib/llm.svelte.js";
   import {
@@ -45,13 +46,14 @@
         variant="ghost"
         size="sm"
         aria-label="Chat statistics"
-        class={percent !== null && percent >= 70 ? "text-warning-strong" : "text-muted-foreground"}
+        class="gap-1.5 {percent !== null && percent >= 70 ? 'text-warning-strong' : 'text-muted-foreground'}"
       >
+        <ChartSquareIcon size={16} />
         <span class="tabular-nums">{percent === null ? "Context" : `${percent}% context`}</span>
       </Button>
     {/snippet}
   </PopoverTrigger>
-  <PopoverContent align="end" side="top" class="w-80">
+  <PopoverContent align="end" side="bottom" class="w-80">
     <div class="flex flex-col gap-3">
       <ContextMeter variant="plain" {segments} {limit}>
         <ContextMeterHeader>

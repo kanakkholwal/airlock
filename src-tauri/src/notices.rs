@@ -233,6 +233,13 @@ pub fn dismiss_overlay_notice(app: AppHandle) {
     overlay::dismiss_overlay_notice(&app);
 }
 
+/// The Dictation page turns this on while its voice orb is visible.
+#[tauri::command]
+#[specta::specta]
+pub fn watch_mic_levels(on: bool) {
+    overlay::set_main_wants_levels(on);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

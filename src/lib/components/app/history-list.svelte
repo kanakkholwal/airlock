@@ -39,7 +39,7 @@
 {:else}
   <ul class="flex flex-col gap-3">
     {#each speech.history as e (e.id)}
-      <li class="flex flex-col gap-2 rounded-2xl bg-card p-4">
+      <li class="flex flex-col gap-2 rounded-2xl bg-card p-4 transition-colors duration-150 hover:bg-muted/60 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-300">
         <div class="flex items-center justify-between gap-3">
           <span class="text-sm text-muted-foreground tabular-nums">{when(e.timestamp)}</span>
           <div class="flex items-center gap-0.5">

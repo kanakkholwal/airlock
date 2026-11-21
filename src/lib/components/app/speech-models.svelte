@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { Microphone3Icon } from "@solar-icons/svelte/linear";
   import { speech } from "#lib/speech.svelte.js";
   import ConfirmDialog from "#lib/components/app/confirm-dialog.svelte";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
-  import { Progress } from "#lib/components/ui/progress/index.js";
+  import DownloadProgress from "#lib/components/app/download-progress.svelte";
   import type { ModelInfo } from "../../../bindings";
 
   // Decision (product): Handy ships 70+ speech models. Five are recommended, so those show by
@@ -23,10 +24,11 @@
 <ul class="flex flex-col gap-3">
   {#each list as m (m.id)}
     {@const p = speech.progress[m.id]}
-    <li class="flex flex-col gap-3 rounded-2xl bg-card p-4">
+    <li class="flex flex-col gap-3 rounded-2xl bg-card p-4 transition-colors duration-150 hover:bg-muted/60">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <div class="flex flex-wrap items-center gap-2">
+            <Microphone3Icon size={16} class="shrink-0 text-muted-foreground" />
             <span class="font-[450]">{m.name}</span>
             {#if m.is_recommended}<Badge size="sm">Recommended</Badge>{/if}
             {#if m.supports_streaming}<Badge size="sm" variant="info">Live transcript</Badge>{/if}
@@ -60,11 +62,7 @@
         </div>
       </div>
       {#if p}
-        <Progress
-          value={p.percentage}
-          indeterminate={p.total === 0}
-          helper={`${mb(p.downloaded)} of ${mb(p.total)}${p.bytesPerSecond ? ` · ${(p.bytesPerSecond / 1_048_576).toFixed(1)} MB/s` : ""}`}
-        />
+        <DownloadProgress compact title={m.name} downloaded={p.downloaded} total={p.total} bytesPerSecond={p.bytesPerSecond ?? 0} />
       {/if}
     </li>
   {/each}

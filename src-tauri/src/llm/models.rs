@@ -83,7 +83,7 @@ fn file_state(dir: &Path, entry: &CatalogEntry) -> FileState {
     }
 }
 
-pub(super) fn free_disk_bytes(dir: &Path) -> Option<u64> {
+pub(crate) fn free_disk_bytes(dir: &Path) -> Option<u64> {
     let dir = dir.canonicalize().ok()?;
     let disks = sysinfo::Disks::new_with_refreshed_list().ok()?;
     disks

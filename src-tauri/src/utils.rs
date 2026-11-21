@@ -25,6 +25,15 @@ pub fn redact_text(text: &str) -> &str {
 /// Main window's opening and minimum page size, in logical pixels.
 pub const MAIN_WINDOW_SIZE: (f64, f64) = (720.0, 600.0);
 
+/// Decision (product): the window opens relative to the screen it opens on, not at a fixed
+/// size. About 78% by 82% of the monitor, kept within a sensible range and never larger than
+/// the monitor itself. `monitor` is the logical size in pixels.
+pub fn opening_size(monitor: (f64, f64)) -> (f64, f64) {
+    let width = (monitor.0 * 0.78).clamp(960.0, 1600.0).min(monitor.0);
+    let height = (monitor.1 * 0.82).clamp(660.0, 1000.0).min(monitor.1);
+    (width, height)
+}
+
 /// Title bar height in logical pixels (macOS draws it inside the inner size).
 /// Call on the main thread.
 #[cfg(target_os = "macos")]
@@ -429,5 +438,23 @@ mod tests {
             assert!(!env_flag_enabled("AIRLOCK_TEST_FLAG_FALSY"), "{value:?}");
         }
         std::env::remove_var("AIRLOCK_TEST_FLAG_FALSY");
+    }
+}
+
+#[cfg(test)]
+mod opening_size_tests {
+    use super::opening_size;
+
+    #[test]
+    fn scales_with_the_monitor() {
+        assert_eq!(opening_size((1920.0, 1080.0)), (1497.6, 885.6));
+        let (w, h) = opening_size((3840.0, 2160.0));
+        assert_eq!((w, h), (1600.0, 1000.0));
+    }
+
+    #[test]
+    fn never_exceeds_a_small_monitor() {
+        let (w, h) = opening_size((800.0, 600.0));
+        assert!(w <= 800.0 && h <= 600.0);
     }
 }

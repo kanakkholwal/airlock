@@ -39,5 +39,5 @@ export function withThemeReveal(apply: () => void) {
     return;
   }
   // The new snapshot is taken when the callback returns, so the DOM must be updated by then.
-  runThemeReveal("rectangle", "bottom-up", () => flushSync(apply));
+  runThemeReveal("rectangle", "top-down", () => flushSync(apply));
 }

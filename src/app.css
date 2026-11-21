@@ -624,6 +624,11 @@
 			filter: blur(8px);
 		}
 	}
+	@keyframes image-generation-mark {
+		to {
+			rotate: 360deg;
+		}
+	}
 }
 
 @layer base {
@@ -702,6 +707,9 @@
 			animation: none;
 		}
 		.theme-toggle-icon {
+			animation: none;
+		}
+		.image-generation-mark {
 			animation: none;
 		}
 	}
@@ -835,6 +843,9 @@
 	.theme-toggle-icon {
 		display: inline-flex;
 		animation: theme-toggle-icon-in 200ms var(--ease-ui-in-out) both;
+	}
+	.image-generation-mark {
+		animation: image-generation-mark 2.4s var(--ease-ui-in-out) infinite;
 	}
 }
 
