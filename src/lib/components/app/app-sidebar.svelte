@@ -1,5 +1,5 @@
 <script lang="ts">
-  import HoverMarquee from "#lib/components/app/hover-marquee.svelte";
+  import { HoverMarquee } from "#lib/components/text/hover-marquee/index.js";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { openUrl } from "@tauri-apps/plugin-opener";

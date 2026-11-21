@@ -2,7 +2,7 @@
   import { MenuDotsIcon } from "@solar-icons/svelte/linear";
   import LoadedModels from "#lib/components/app/loaded-models.svelte";
   import ChatStats from "#lib/components/app/chat-stats.svelte";
-  import HoverMarquee from "#lib/components/app/hover-marquee.svelte";
+  import { HoverMarquee } from "#lib/components/text/hover-marquee/index.js";
   import { chat } from "#lib/chat.svelte.js";
   import { llm } from "#lib/llm.svelte.js";
   import DeleteChatDialog from "#lib/components/app/delete-chat-dialog.svelte";
