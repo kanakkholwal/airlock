@@ -84,7 +84,7 @@ jobs:
           targets: ${{ matrix.rust_targets }}
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
+          workspaces: apps/desktop/src-tauri
           key: ${{ matrix.os }}
 
       - name: Linux system libraries
@@ -114,6 +114,8 @@ jobs:
           # Kept as a draft until every platform has uploaded, then published by the next job.
           releaseDraft: true
           prerelease: ${{ contains(env.TAG, '-') }}
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
           args: ${{ matrix.args }}
 
   publish:

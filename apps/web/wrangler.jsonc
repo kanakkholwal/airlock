@@ -1,0 +1,5 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "airlock-web",
+  "compatibility_date": "2026-11-01"
+}

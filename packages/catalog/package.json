@@ -1,0 +1,13 @@
+{
+  "name": "@airlock/catalog",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Models, voices and engines Airlock can download, as data. The desktop app embeds these files and the website lists them.",
+  "exports": {
+    "./chat-models": "./chat-models.json",
+    "./image-models": "./image-models.json",
+    "./voices": "./voices.json",
+    "./engines": "./engines.json"
+  }
+}

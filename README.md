@@ -28,11 +28,12 @@ Needs Node 22, pnpm and Rust.
 
 ```sh
 pnpm install
-pnpm app:dev:cpu
-pnpm app:build:cpu
+pnpm app:dev:cpu     # run the desktop app
+pnpm app:build:cpu   # build an installer
+pnpm web:dev         # run the website
 ```
 
-Model, voice and engine lists are JSON in [`src-tauri/catalog`](src-tauri/catalog). Add or override entries in `catalog/` inside the app data folder.
+The repository holds the desktop app in [`apps/desktop`](apps/desktop), the website in [`apps/web`](apps/web) and shared data in [`packages`](packages). Model, voice and engine lists are JSON in [`packages/catalog`](packages/catalog). Add or override entries in `catalog/` inside the app data folder.
 
 ## License
 

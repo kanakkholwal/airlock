@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* Placeholder tokens. When the design system moves into a shared package, import its tokens here instead. */
+:root {
+  --background: oklch(100% 0 0);
+  --foreground: oklch(20% 0.01 265);
+  --muted: oklch(96% 0.003 265);
+  --muted-foreground: oklch(48% 0.01 265);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(17% 0.002 265);
+    --foreground: oklch(96% 0.003 265);
+    --muted: oklch(24% 0.004 265);
+    --muted-foreground: oklch(72% 0.008 265);
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}

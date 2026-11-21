@@ -1,0 +1,26 @@
+{
+  "name": "@airlock/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "deploy": "pnpm build && wrangler deploy"
+  },
+  "devDependencies": {
+    "@airlock/catalog": "workspace:*",
+    "@sveltejs/adapter-cloudflare": "^9.0.0",
+    "@sveltejs/kit": "^3.4.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tailwindcss/vite": "^4.1.16",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "tailwindcss": "^4.1.16",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.8",
+    "wrangler": "^4.162.0"
+  }
+}

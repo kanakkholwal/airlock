@@ -1,11 +1,11 @@
 .local/
-target/
 node_modules/
 .svelte-kit/
 build/
 dist/
 .vite/
+.wrangler/
+.dev.vars
 *.log
-src-tauri/target-test/debug
-src-tauri/target-test
-src-tauri/target/debug
+**/target/
+**/target-test/
