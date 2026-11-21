@@ -664,9 +664,9 @@ async chatLoadMessages(conversationId: number) : Promise<Result<Message[], strin
     else return { status: "error", error: e  as any };
 }
 },
-async chatAppendMessage(conversationId: number, role: Role, parts: Part[]) : Promise<Result<number, string>> {
+async chatAppendMessage(conversationId: number, role: Role, parts: Part[], usage: Usage | null) : Promise<Result<number, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("chat_append_message", { conversationId, role, parts }) };
+    return { status: "ok", data: await TAURI_INVOKE("chat_append_message", { conversationId, role, parts, usage }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1933,7 +1933,7 @@ export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
  */
 export type MacPermission = "accessibility" | "microphone"
 export type MemoryCheck = { required_bytes: number; free_bytes: number; fits: boolean }
-export type Message = { id: number; conversation_id: number; role: Role; parts: Part[]; created_at: number }
+export type Message = { id: number; conversation_id: number; role: Role; parts: Part[]; created_at: number; usage: Usage | null }
 /**
  * The baseline for calls that have no rule. Rules still apply on top of every mode.
  */
@@ -2249,6 +2249,11 @@ model_id: string; model_name: string; license: string; supported: boolean; engin
 missing_bytes: number; total_bytes: number; default_voice: number; voices: TtsVoice[] }
 export type TtsVoice = { id: number; name: string; accent: string; gender: string }
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
+/**
+ * What the engine reported for one reply. Saved with the message so a chat reopened later shows
+ * the same context figures it had when it was written.
+ */
+export type Usage = { prompt_tokens: number | null; completion_tokens: number | null; tokens_per_second: number | null; first_token_ms: number | null }
 export type VadBackend = "silero" | "earshot"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 export type WireMessage = { role: string; content: string; 

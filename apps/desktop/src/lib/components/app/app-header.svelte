@@ -74,7 +74,8 @@
   </div>
 
   <div class="flex shrink-0 items-center gap-1">
-    <ChatStats />
+    <!-- Context belongs to one chat, so it shows only while a chat is open and has messages. -->
+    {#if chat.messages.length > 0}<ChatStats />{/if}
     <LoadedModels />
   </div>
 </header>

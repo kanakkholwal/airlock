@@ -79,6 +79,16 @@ pub struct Conversation {
     pub updated_at: i64,
 }
 
+/// What the engine reported for one reply. Saved with the message so a chat reopened later shows
+/// the same context figures it had when it was written.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Type)]
+pub struct Usage {
+    pub prompt_tokens: Option<u32>,
+    pub completion_tokens: Option<u32>,
+    pub tokens_per_second: Option<f64>,
+    pub first_token_ms: Option<u32>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct Message {
     pub id: i64,
@@ -86,11 +96,13 @@ pub struct Message {
     pub role: Role,
     pub parts: Vec<Part>,
     pub created_at: i64,
+    pub usage: Option<Usage>,
 }
 
 fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(
-        "CREATE TABLE conversations (
+    Migrations::new(vec![
+        M::up(
+            "CREATE TABLE conversations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             model TEXT,
@@ -111,7 +123,9 @@ fn migrations() -> Migrations<'static> {
             payload TEXT NOT NULL
         );
         CREATE INDEX parts_by_message ON parts(message_id, idx);",
-    )])
+        ),
+        M::up("ALTER TABLE messages ADD COLUMN usage TEXT;"),
+    ])
 }
 
 pub struct ChatStore {
@@ -148,12 +162,14 @@ impl ChatStore {
         conversation_id: i64,
         role: Role,
         parts: &[Part],
+        usage: Option<&Usage>,
     ) -> Result<i64> {
         let now = now();
+        let usage = usage.map(serde_json::to_string).transpose()?;
         let tx = self.conn.transaction()?;
         tx.execute(
-            "INSERT INTO messages (conversation_id, role, created_at) VALUES (?1, ?2, ?3)",
-            params![conversation_id, role.as_str(), now],
+            "INSERT INTO messages (conversation_id, role, created_at, usage) VALUES (?1, ?2, ?3, ?4)",
+            params![conversation_id, role.as_str(), now, usage],
         )?;
         let message_id = tx.last_insert_rowid();
         for (idx, part) in parts.iter().enumerate() {
@@ -187,7 +203,7 @@ impl ChatStore {
 
     pub fn load_messages(&self, conversation_id: i64) -> Result<Vec<Message>> {
         let mut msgs = self.conn.prepare(
-            "SELECT id, role, created_at FROM messages WHERE conversation_id = ?1 ORDER BY id",
+            "SELECT id, role, created_at, usage FROM messages WHERE conversation_id = ?1 ORDER BY id",
         )?;
         let mut parts = self
             .conn
@@ -198,11 +214,12 @@ impl ChatStore {
                     r.get::<_, i64>(0)?,
                     r.get::<_, String>(1)?,
                     r.get::<_, i64>(2)?,
+                    r.get::<_, Option<String>>(3)?,
                 ))
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
         let mut out = Vec::with_capacity(heads.len());
-        for (id, role, created_at) in heads {
+        for (id, role, created_at, usage) in heads {
             let payloads = parts
                 .query_map(params![id], |r| r.get::<_, String>(0))?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -216,6 +233,7 @@ impl ChatStore {
                 role: Role::parse(&role),
                 parts,
                 created_at,
+                usage: usage.and_then(|u| serde_json::from_str(&u).ok()),
             });
         }
         Ok(out)
@@ -270,7 +288,7 @@ mod tests {
                 text: "done".into(),
             },
         ];
-        s.append_message(c, Role::Assistant, &parts).unwrap();
+        s.append_message(c, Role::Assistant, &parts, None).unwrap();
         s.append_message(
             c,
             Role::Tool,
@@ -279,6 +297,7 @@ mod tests {
                 output: "4".into(),
                 is_error: false,
             }],
+            None,
         )
         .unwrap();
         let got = s.load_messages(c).unwrap();
@@ -291,9 +310,9 @@ mod tests {
     fn deleting_the_last_message_removes_its_parts_only() {
         let mut s = ChatStore::in_memory().unwrap();
         let c = s.create_conversation("t", None).unwrap();
-        s.append_message(c, Role::User, &[Part::Text { text: "q".into() }])
+        s.append_message(c, Role::User, &[Part::Text { text: "q".into() }], None)
             .unwrap();
-        s.append_message(c, Role::Assistant, &[Part::Text { text: "a".into() }])
+        s.append_message(c, Role::Assistant, &[Part::Text { text: "a".into() }], None)
             .unwrap();
         s.delete_last_message(c).unwrap();
         let left = s.load_messages(c).unwrap();
@@ -305,7 +324,7 @@ mod tests {
     fn deleting_a_conversation_cascades() {
         let mut s = ChatStore::in_memory().unwrap();
         let c = s.create_conversation("t", None).unwrap();
-        s.append_message(c, Role::User, &[Part::Text { text: "hi".into() }])
+        s.append_message(c, Role::User, &[Part::Text { text: "hi".into() }], None)
             .unwrap();
         s.delete_conversation(c).unwrap();
         assert!(s.list_conversations().unwrap().is_empty());
@@ -314,5 +333,29 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM parts", [], |r| r.get(0))
             .unwrap();
         assert_eq!(orphans, 0);
+    }
+
+    #[test]
+    fn usage_is_saved_with_a_reply_and_read_back() {
+        let mut s = ChatStore::in_memory().unwrap();
+        let c = s.create_conversation("t", None).unwrap();
+        let usage = Usage {
+            prompt_tokens: Some(120),
+            completion_tokens: Some(40),
+            tokens_per_second: Some(31.5),
+            first_token_ms: Some(900),
+        };
+        s.append_message(c, Role::User, &[Part::Text { text: "q".into() }], None)
+            .unwrap();
+        s.append_message(
+            c,
+            Role::Assistant,
+            &[Part::Text { text: "a".into() }],
+            Some(&usage),
+        )
+        .unwrap();
+        let msgs = s.load_messages(c).unwrap();
+        assert_eq!(msgs[0].usage, None);
+        assert_eq!(msgs[1].usage, Some(usage));
     }
 }

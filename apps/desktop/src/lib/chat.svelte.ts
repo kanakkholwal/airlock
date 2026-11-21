@@ -1,4 +1,4 @@
-import { commands, type Answer, type Conversation, type Message as DbMessage, type Part, type Risk } from "../bindings";
+import { commands, type Answer, type Conversation, type Message as DbMessage, type Part, type Risk, type Usage as StoredUsage } from "../bindings";
 
 export type { Part };
 
@@ -183,7 +183,18 @@ class ChatSession {
     this.conversationId = id;
     this.messages = res.data.flatMap((m: DbMessage): ChatMessage[] =>
       m.role === "user" || m.role === "assistant"
-        ? [{ id: this.nextId++, role: m.role, parts: m.parts, status: "done" }]
+        ? [
+            {
+              id: this.nextId++,
+              role: m.role,
+              parts: m.parts,
+              status: "done",
+              promptTokens: m.usage?.prompt_tokens ?? undefined,
+              completionTokens: m.usage?.completion_tokens ?? undefined,
+              tokensPerSecond: m.usage?.tokens_per_second ?? undefined,
+              firstTokenMs: m.usage?.first_token_ms ?? undefined,
+            },
+          ]
         : [],
     );
   }
@@ -263,7 +274,7 @@ class ChatSession {
   }
 
   /** Appends to the open conversation, creating it on the first message. */
-  private save(role: "user" | "assistant", parts: Part[], titleSource?: string) {
+  private save(role: "user" | "assistant", parts: Part[], titleSource?: string, usage: StoredUsage | null = null) {
     if (!inTauri()) return Promise.resolve();
     const run = this.writes.then(async () => {
       try {
@@ -276,7 +287,7 @@ class ChatSession {
           this.conversationId = created.data;
           this.needsTitle.add(created.data);
         }
-        const res = await commands.chatAppendMessage(this.conversationId, role, parts);
+        const res = await commands.chatAppendMessage(this.conversationId, role, parts, usage);
         if (res.status === "error") throw new Error(res.error);
         this.saveError = null;
         await this.refreshList();
@@ -407,7 +418,13 @@ class ChatSession {
     }
     // A partial reply from a stopped stream is kept; an empty one is not worth saving.
     if (live.status === "done" && live.parts.length > 0) {
-      void this.save("assistant", $state.snapshot(live.parts)).then(() => {
+      const usage: StoredUsage = {
+        prompt_tokens: live.promptTokens ?? null,
+        completion_tokens: live.completionTokens ?? null,
+        tokens_per_second: live.tokensPerSecond ?? null,
+        first_token_ms: live.firstTokenMs ?? null,
+      };
+      void this.save("assistant", $state.snapshot(live.parts), undefined, usage).then(() => {
         const id = this.conversationId;
         if (id !== null && this.needsTitle.delete(id)) this.queueTitle(id);
       });

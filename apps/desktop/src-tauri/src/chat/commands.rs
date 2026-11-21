@@ -1,4 +1,4 @@
-use super::store::{ChatStore, Conversation, Message, Part, Role};
+use super::store::{ChatStore, Conversation, Message, Part, Role, Usage};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
@@ -46,10 +46,11 @@ pub fn chat_append_message(
     conversation_id: i64,
     role: Role,
     parts: Vec<Part>,
+    usage: Option<Usage>,
 ) -> Result<i64, String> {
     db.0.lock()
         .unwrap()
-        .append_message(conversation_id, role, &parts)
+        .append_message(conversation_id, role, &parts, usage.as_ref())
         .map_err(err)
 }
 

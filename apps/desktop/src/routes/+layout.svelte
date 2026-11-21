@@ -13,7 +13,6 @@
   import AppHeader from "#lib/components/app/app-header.svelte";
   import AppSidebar from "#lib/components/app/app-sidebar.svelte";
   import LoadedModels from "#lib/components/app/loaded-models.svelte";
-  import VoiceControl from "#lib/components/app/voice-control.svelte";
   import { ErrorBoundary } from "#lib/components/ui/error-boundary/index.js";
   import { Toaster } from "#lib/components/ui/toast/index.js";
   import { TooltipProvider } from "#lib/components/ui/tooltip/index.js";
@@ -61,7 +60,6 @@
     {#if page.url.pathname !== "/"}
       <div class="absolute top-1.5 right-4 z-20"><LoadedModels /></div>
     {/if}
-    {#if page.url.pathname !== "/voice"}<VoiceControl />{/if}
     {#if page.url.pathname === "/"}
       <AppHeader />
     {/if}

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { chat, hasTools, imagesOf, reasoningOf, referencesOf, resultOf, textOf } from "#lib/chat.svelte.js";
-  import { speaker } from "#lib/speak.svelte.js";
   import ChatComposer from "#lib/components/app/chat-composer.svelte";
   import ChatToolCall from "#lib/components/app/chat-tool-call.svelte";
   import PromptSuggestions from "#lib/components/app/prompt-suggestions.svelte";
@@ -31,7 +30,6 @@
     MessageActionsBar,
     MessageActionsCopy,
     MessageActionsRegenerate,
-    MessageActionsSpeak,
   } from "#lib/components/agents/message-actions/index.js";
   import Thinking from "#lib/components/app/thinking.svelte";
   import {
@@ -124,12 +122,6 @@
                         <MessageActions>
                           <MessageActionsBar>
                             <MessageActionsCopy {text} />
-                            {#if speaker.available}
-                              <MessageActionsSpeak
-                                pressed={speaker.speakingId === String(m.id)}
-                                onPressedChange={(on) => (on ? speaker.speak(text, String(m.id)) : speaker.stop())}
-                              />
-                            {/if}
                             {#if i === chat.messages.length - 1}
                               <MessageActionsRegenerate onclick={() => chat.regenerate()} />
                             {/if}
@@ -154,12 +146,6 @@
                             <MessageActions>
                               <MessageActionsBar>
                                 <MessageActionsCopy {text} />
-                                {#if speaker.available}
-                                  <MessageActionsSpeak
-                                    pressed={speaker.speakingId === String(m.id)}
-                                    onPressedChange={(on) => (on ? speaker.speak(text, String(m.id)) : speaker.stop())}
-                                  />
-                                {/if}
                                 {#if i === chat.messages.length - 1}
                                   <MessageActionsRegenerate onclick={() => chat.regenerate()} />
                                 {/if}
