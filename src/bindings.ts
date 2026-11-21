@@ -2004,7 +2004,12 @@ export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
  * Decision (architecture): messages hold typed parts so tool calls, reasoning and media
  * (Stage 4) need no schema migration. Provenance: Ensu `db/` chat schema, re-implemented.
  */
-export type Part = { type: "text"; text: string } | { type: "reasoning"; text: string } | { type: "tool_call"; call_id: string; name: string; arguments: string } | { type: "tool_result"; call_id: string; output: string; is_error: boolean } | { type: "image"; path: string } | { type: "audio"; path: string }
+export type Part = { type: "text"; text: string } | { type: "reasoning"; text: string } | { type: "tool_call"; call_id: string; name: string; arguments: string } | { type: "tool_result"; call_id: string; output: string; is_error: boolean } | { type: "image"; path: string } | { type: "audio"; path: string } | 
+/**
+ * An item from the library the person pointed at with `@`. Only its id, title and a short
+ * preview travel with the message; anything more goes through the privacy gateway.
+ */
+{ type: "reference"; id: string; title: string; kind: string; preview: string }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"
 /**
