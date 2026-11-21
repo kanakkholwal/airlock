@@ -104,6 +104,7 @@ hf-hub = { git = "https://github.com/cjpais/hf-hub", branch = "cancellable-downl
 sysinfo = "0.40.4"
 zip = { version = "9.8.1", default-features = false, features = ["deflate"] }
 flate2 = "1.1.11"
+bzip2 = "0.6"
 tar = "0.4.46"
 rand = "0.8"
 base64 = "0.22"

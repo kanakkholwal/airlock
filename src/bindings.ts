@@ -995,6 +995,58 @@ async imageDelete(id: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async agentDecide(callId: string, answer: Answer) : Promise<void> {
+    await TAURI_INVOKE("agent_decide", { callId, answer });
+},
+async agentGetConfig() : Promise<AgentConfig> {
+    return await TAURI_INVOKE("agent_get_config");
+},
+async agentSetConfig(config: AgentConfig) : Promise<Result<AgentConfig, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("agent_set_config", { config }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async agentTools() : Promise<ToolInfo[]> {
+    return await TAURI_INVOKE("agent_tools");
+},
+async ttsStatus() : Promise<Result<TtsStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async ttsInstall(onEvent: TAURI_CHANNEL<DownloadEvent>) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_install", { onEvent }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async ttsInstallCancel() : Promise<void> {
+    await TAURI_INVOKE("tts_install_cancel");
+},
+async ttsRemove() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_remove") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async ttsSynthesize(req: SpeakRequest) : Promise<Result<SpeechClip, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_synthesize", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Check if Apple Intelligence is available on this device.
  * Called by the frontend when the user selects Apple Intelligence provider.
@@ -1457,6 +1509,32 @@ transcriptionJob: "transcription-job"
 
 /** user-defined types **/
 
+export type Action = "allow" | "ask" | "deny"
+/**
+ * What the assistant may do. Decision (product): privacy first, so no folder is shared until
+ * the person adds one, and every tool can be switched off.
+ */
+export type AgentConfig = { enabled: boolean; 
+/**
+ * Folders the file tools may read. Always stored as full, existing paths.
+ */
+folders: string[]; disabled_tools: string[]; mode?: Mode; 
+/**
+ * Rules the person wrote. `deny` beats `ask` beats `allow`.
+ */
+rules?: Rule[]; 
+/**
+ * "Always allow" answers remembered from approval cards; the person can remove them.
+ */
+grants?: Rule[] }
+/**
+ * What the person chose on an approval card.
+ */
+export type Answer = "deny" | "once" | 
+/**
+ * Yes now, and remember it as an allow rule for this tool.
+ */
+"always"
 /**
  * The container-level `serde(default)` (backed by the `Default` impl below)
  * guarantees every field — including ones added in the future — falls back to
@@ -1574,7 +1652,15 @@ export type AvailableAccelerators = { transcribe: string[]; gpu_devices: GpuDevi
  */
 export type Backend = "auto" | "vulkan" | "cuda" | "metal" | "cpu"
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
-export type ChatEvent = { type: "text"; delta: string } | { type: "reasoning"; delta: string } | { type: "done"; tokens_per_second: number | null; prompt_tokens: number | null; completion_tokens: number | null } | { type: "error"; message: string }
+export type ChatEvent = { type: "text"; delta: string } | { type: "reasoning"; delta: string } | 
+/**
+ * The model asked for a tool; `title` says what it does in words.
+ */
+{ type: "tool_call"; call_id: string; name: string; arguments: string; title: string } | 
+/**
+ * The call needs the person's yes before it runs.
+ */
+{ type: "tool_approval"; call_id: string; name: string; title: string; risk: Risk } | { type: "tool_result"; call_id: string; output: string; is_error: boolean } | { type: "done"; tokens_per_second: number | null; prompt_tokens: number | null; completion_tokens: number | null } | { type: "error"; message: string }
 /**
  * Script applied to Mandarin and Cantonese output. Traditional carries its region
  * (Taiwan vs Hong Kong forms, e.g. 裡/裏) rather than guessing it.
@@ -1625,7 +1711,11 @@ language: string | null;
 /**
  * How that language was chosen; `None` before it was recorded.
  */
-language_source: LanguageSource | null }
+language_source: LanguageSource | null; 
+/**
+ * Timed pieces of the transcript, for files; `None` for dictations.
+ */
+segments: TimedSegment[] | null }
 export type HistoryUpdatePayload = { action: "added"; entry: HistoryEntry } | { action: "updated"; entry: HistoryEntry } | { action: "deleted"; id: number } | { action: "toggled"; id: number }
 export type ImageEngineStatus = { backend: Backend; label: string; size_bytes: number; installed: boolean; recommended: boolean }
 export type ImageEvent = 
@@ -1733,6 +1823,22 @@ export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type MacPermission = "accessibility" | "microphone"
 export type MemoryCheck = { required_bytes: number; free_bytes: number; fits: boolean }
 export type Message = { id: number; conversation_id: number; role: Role; parts: Part[]; created_at: number }
+/**
+ * The baseline for calls that have no rule. Rules still apply on top of every mode.
+ */
+export type Mode = 
+/**
+ * Reading ordinary things runs; private reads and anything that writes ask first.
+ */
+"ask" | 
+/**
+ * Like Ask, but saving notes runs without asking. Private reads still ask.
+ */
+"accept_writes" | 
+/**
+ * Nothing asks. Only what a rule allows runs, and everything else is refused.
+ */
+"dont_ask"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
@@ -1759,7 +1865,7 @@ sha256: string | null } } |
  * in a shared cache. Nothing to download.
  */
 "Local"
-export type ModelStatus = { id: string; name: string; description: string; size_bytes: number; license: string; license_url: string | null; recommended: boolean; vision: boolean; imported: boolean; file: FileState }
+export type ModelStatus = { id: string; name: string; description: string; size_bytes: number; license: string; license_url: string | null; recommended: boolean; tags: string[]; vision: boolean; imported: boolean; file: FileState }
 export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
 export type Notice = { code: NoticeCode; level: NoticeLevel; source: NoticeSource; 
 /**
@@ -1861,7 +1967,17 @@ idle_minutes: number; unload_when_hidden: boolean }
  * A retired ONNX model found on disk.
  */
 export type RetiredModel = { id: string; name: string; size_mb: number; replacement_repo: string }
+/**
+ * How much a call needs the person's say. Decision (product): reading public facts is free,
+ * reading private text asks first, and anything that writes asks first.
+ */
+export type Risk = "read" | "ask" | "write"
 export type Role = "system" | "user" | "assistant" | "tool"
+/**
+ * `tool` is a tool name or `*`. `pattern` narrows it to calls whose subject matches, where `*`
+ * stands for any run of characters. No pattern means every call of that tool.
+ */
+export type Rule = { action: Action; tool: string; pattern?: string | null }
 export type SecretMap = Partial<{ [key in string]: string }>
 export type SecureInputStatus = { 
 /**
@@ -1915,6 +2031,8 @@ export type ShortcutActivation =
 "hold_or_toggle"
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
 export type SoundTheme = "marimba" | "pop" | "custom"
+export type SpeakRequest = { text: string; voice: number; speed: number }
+export type SpeechClip = { path: string; seconds: number }
 export type SpeedResult = { target: string; backend: string; value: number; unit: string }
 export type StoragePaths = { models_dir: string; engines_dir: string; default_models_dir: string; default_engines_dir: string; models_custom: boolean; engines_custom: boolean }
 /**
@@ -1955,6 +2073,12 @@ export type SystemMemory = { total_bytes: number; free_bytes: number }
  * and `Dark` force one of the two palettes Airlock already ships.
  */
 export type Theme = "system" | "light" | "dark"
+/**
+ * One stretch of a transcript with where it sits in the audio, in milliseconds. Kept for files
+ * so a podcast or a meeting can be read, searched and exported by time.
+ */
+export type TimedSegment = { start_ms: number; end_ms: number; text: string }
+export type ToolInfo = { name: string; description: string; risk: Risk; needs_folder: boolean; enabled: boolean }
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 /**
  * Emitted when a dictation finishes (not on cancel); onboarding uses it to measure speed.
@@ -1997,6 +2121,16 @@ export type TranscriptionOutcome =
  * Transcribing or pasting failed.
  */
 "failed"
+export type TtsStatus = { 
+/**
+ * The voice model in use, so screens can name it (and later offer a choice).
+ */
+model_id: string; model_name: string; license: string; supported: boolean; engine_installed: boolean; model_downloaded: boolean; ready: boolean; 
+/**
+ * Bytes still to download for the voice pack.
+ */
+missing_bytes: number; total_bytes: number; default_voice: number; voices: TtsVoice[] }
+export type TtsVoice = { id: number; name: string; accent: string; gender: string }
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 export type VadBackend = "silero" | "earshot"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }

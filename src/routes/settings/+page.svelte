@@ -24,6 +24,7 @@
   import { withThemeReveal } from "#lib/theme.js";
   import PageHeader from "#lib/components/app/page-header.svelte";
   import PageScroll from "#lib/components/app/page-scroll.svelte";
+  import AssistantSettings from "#lib/components/app/assistant-settings.svelte";
   import SettingRow from "#lib/components/app/setting-row.svelte";
   import SettingsGroup from "#lib/components/app/settings-group.svelte";
   import SettingsSkeleton from "#lib/components/app/settings-skeleton.svelte";
@@ -53,6 +54,7 @@
   const sections = [
     { id: "general", label: "General", icon: SettingsIcon },
     { id: "memory", label: "Memory", icon: CpuIcon },
+    { id: "assistant", label: "Assistant", icon: ShieldCheckIcon },
     { id: "privacy", label: "Privacy", icon: ShieldCheckIcon },
     { id: "storage", label: "Storage", icon: FolderIcon },
     { id: "about", label: "About", icon: InfoCircleIcon },
@@ -220,6 +222,9 @@
     Cleaning up dictation with a model only works while the chat model is loaded. Otherwise the text is pasted as spoken.
   </p>
 </SettingsGroup>
+{/if}
+{#if tab === "assistant"}
+<AssistantSettings />
 {/if}
 {#if tab === "privacy"}
 <SettingsGroup id="privacy" icon={ShieldCheckIcon} title="Privacy" description="Everything that can leave this computer, when, and where to.">

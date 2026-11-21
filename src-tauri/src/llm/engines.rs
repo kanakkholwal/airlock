@@ -9,123 +9,14 @@ use std::sync::Arc;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 
-/// Pinned official llama.cpp release. Decision (architecture): engines download on first use,
-/// verified against the checksums GitHub publishes for each release asset.
-const BUILD: &str = "b12576";
+use crate::data::{self, BuildSource as EngineBuild};
 
-#[derive(Clone, Copy)]
-struct Asset {
-    name: &'static str,
-    sha256: &'static str,
-    size: u64,
+/// Decision (architecture): engines download on first use, verified against the checksums
+/// GitHub publishes for each release asset. The pinned release and its assets live in
+/// `catalog/engines.json`, one list per platform.
+fn builds() -> &'static [EngineBuild] {
+    data::engine("llama").map_or(&[], |e| e.builds)
 }
-
-#[derive(Clone, Copy)]
-struct EngineBuild {
-    backend: Backend,
-    label: &'static str,
-    recommended: bool,
-    assets: &'static [Asset],
-}
-
-#[cfg(all(windows, target_arch = "x86_64"))]
-const BUILDS: &[EngineBuild] = &[
-    EngineBuild {
-        backend: Backend::Vulkan,
-        label: "Vulkan (any GPU)",
-        recommended: true,
-        assets: &[Asset {
-            name: "llama-b12576-bin-win-vulkan-x64.zip",
-            sha256: "ea6a55397d6afebc39abd74a3c2628b4548ec4346d15d21000a38a7802187101",
-            size: 38_713_184,
-        }],
-    },
-    EngineBuild {
-        backend: Backend::Cuda,
-        label: "CUDA (NVIDIA only, slightly faster)",
-        recommended: false,
-        assets: &[
-            Asset {
-                name: "llama-b12576-bin-win-cuda-13.5-x64.zip",
-                sha256: "f9748d9db4c5cf97326a5919905c379f9d2dd44a08ef7e1729675517cac519f6",
-                size: 225_467_178,
-            },
-            Asset {
-                name: "cudart-llama-bin-win-cuda-13.5-x64.zip",
-                sha256: "c2bf4cc202bfbaaa7a0b75f5082457c3811326947bb216059b72839d844e9cba",
-                size: 426_314_199,
-            },
-        ],
-    },
-    EngineBuild {
-        backend: Backend::Cpu,
-        label: "CPU only",
-        recommended: false,
-        assets: &[Asset {
-            name: "llama-b12576-bin-win-cpu-x64.zip",
-            sha256: "c8bda771161ab75e259568ea178122b7567fb2d51c1a5ac755d308897e9b1c20",
-            size: 24_875_631,
-        }],
-    },
-];
-
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-const BUILDS: &[EngineBuild] = &[
-    EngineBuild {
-        backend: Backend::Vulkan,
-        label: "Vulkan (any GPU)",
-        recommended: true,
-        assets: &[Asset {
-            name: "llama-b12576-bin-ubuntu-vulkan-x64.tar.gz",
-            sha256: "06a6bf56e34204f1f107d1f7a76347846fb5783f9f52cb2b6a8bb0ead65d8908",
-            size: 36_738_274,
-        }],
-    },
-    EngineBuild {
-        backend: Backend::Cpu,
-        label: "CPU only",
-        recommended: false,
-        assets: &[Asset {
-            name: "llama-b12576-bin-ubuntu-x64.tar.gz",
-            sha256: "b3e1ea8ff8723a17d312562625e9e531b10bed69222c49c53741d737d0214e31",
-            size: 23_060_191,
-        }],
-    },
-];
-
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-const BUILDS: &[EngineBuild] = &[EngineBuild {
-    backend: Backend::Metal,
-    label: "Metal (Apple GPU)",
-    recommended: true,
-    assets: &[Asset {
-        name: "llama-b12576-bin-macos-arm64.tar.gz",
-        sha256: "69da1ce8b38945939f4ad040637f762495f7b00f6d22ad88e3c874f4f66b8c20",
-        size: 16_451_935,
-    }],
-}];
-
-#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-const BUILDS: &[EngineBuild] = &[EngineBuild {
-    backend: Backend::Cpu,
-    label: "CPU only",
-    recommended: true,
-    assets: &[Asset {
-        name: "llama-b12576-bin-macos-x64.tar.gz",
-        sha256: "d7ed21b59e6587159582bbcfc43f078c9aa40cf396b84f011977798ced914213",
-        size: 12_230_057,
-    }],
-}];
-
-#[cfg(not(any(
-    all(windows, target_arch = "x86_64"),
-    all(target_os = "linux", target_arch = "x86_64"),
-    all(
-        target_os = "macos",
-        any(target_arch = "aarch64", target_arch = "x86_64")
-    ),
-)))]
-const BUILDS: &[EngineBuild] = &[];
 
 #[derive(Debug, Clone, Serialize, Type)]
 pub struct EngineStatus {
@@ -159,6 +50,10 @@ pub(crate) fn extract(archive: &Path, dest: &Path) -> Result<(), String> {
         zip::ZipArchive::new(file)
             .map_err(|e| e.to_string())?
             .extract(dest)
+            .map_err(|e| e.to_string())
+    } else if name.ends_with(".tar.bz2") {
+        tar::Archive::new(bzip2::read::BzDecoder::new(file))
+            .unpack(dest)
             .map_err(|e| e.to_string())
     } else {
         tar::Archive::new(flate2::read::GzDecoder::new(file))
@@ -195,7 +90,7 @@ fn flatten_single_dir(dest: &Path) -> Result<(), String> {
 #[specta::specta]
 pub fn llm_engines(app: AppHandle) -> Result<Vec<EngineStatus>, String> {
     let engines = engines_dir(&app)?;
-    Ok(BUILDS
+    Ok(builds()
         .iter()
         .map(|b| EngineStatus {
             backend: b.backend,
@@ -215,7 +110,9 @@ pub async fn llm_install_engine(
     backend: Backend,
     on_event: Channel<DownloadEvent>,
 ) -> Result<(), String> {
-    let build = BUILDS
+    let source = data::engine("llama").ok_or("This engine is not available on this system")?;
+    let build = source
+        .builds
         .iter()
         .find(|b| b.backend == backend)
         .ok_or("This engine is not available on this system")?;
@@ -239,10 +136,7 @@ pub async fn llm_install_engine(
     for asset in build.assets {
         let target = downloads.join(asset.name);
         let fetch = Fetch {
-            url: format!(
-                "https://github.com/ggml-org/llama.cpp/releases/download/{BUILD}/{}",
-                asset.name
-            ),
+            url: source.asset_url(asset),
             target: &target,
             sha256: asset.sha256,
         };
@@ -335,7 +229,8 @@ mod tests {
 
     #[test]
     fn every_build_has_valid_checksums() {
-        for b in BUILDS {
+        assert!(!builds().is_empty() || data::engine("llama").is_none());
+        for b in builds() {
             for a in b.assets {
                 assert_eq!(a.sha256.len(), 64, "{}", a.name);
             }

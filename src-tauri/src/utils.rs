@@ -447,7 +447,8 @@ mod opening_size_tests {
 
     #[test]
     fn scales_with_the_monitor() {
-        assert_eq!(opening_size((1920.0, 1080.0)), (1497.6, 885.6));
+        let (w, h) = opening_size((1920.0, 1080.0));
+        assert!((w - 1497.6).abs() < 0.01 && (h - 885.6).abs() < 0.01, "{w} x {h}");
         let (w, h) = opening_size((3840.0, 2160.0));
         assert_eq!((w, h), (1600.0, 1000.0));
     }

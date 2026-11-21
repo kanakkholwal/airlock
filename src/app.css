@@ -847,6 +847,15 @@
 	.image-generation-mark {
 		animation: image-generation-mark 2.4s var(--ease-ui-in-out) infinite;
 	}
+	.slider-glide {
+		--slider-glide: var(--duration-spring-snappy);
+		transition-property: inset-inline-start, left, right, width, scale, box-shadow;
+		transition-duration: var(--slider-glide), var(--slider-glide), var(--slider-glide), var(--slider-glide), var(--duration-press), var(--duration-press);
+		transition-timing-function: var(--ease-spring-snappy), var(--ease-spring-snappy), var(--ease-spring-snappy), var(--ease-spring-snappy), var(--ease-ui-out), var(--ease-ui-out);
+	}
+	.slider-glide[data-orientation="vertical"] {
+		transition-property: inset-block-end, bottom, top, height, scale, box-shadow;
+	}
 }
 
 /* The app fills the window; only inner panes scroll, so the page never rubber-bands. */

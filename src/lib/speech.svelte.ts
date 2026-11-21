@@ -56,6 +56,8 @@ class SpeechStore {
   /** The speech model held in memory right now, and whether one is loading. */
   loadedModel = $state<string | null>(null);
   loadingModel = $state(false);
+  /** Show timed transcripts by default (a preference for podcasts and meetings). */
+  timestampsDefault = $state(false);
   /** True while the one-button setup runs. */
   settingUp = $state(false);
   private started = false;
@@ -99,6 +101,7 @@ class SpeechStore {
       return;
     }
     this.started = true;
+    this.timestampsDefault = localStorage.getItem("airlock-timestamps") === "1";
     const refresh = () => void this.refreshModels();
     await Promise.all([
       listen<DownloadProgressEvent>("model-download-progress", (e) => {
@@ -153,6 +156,11 @@ class SpeechStore {
     const problem = await startDictationEngine();
     this.engineReady = problem === null;
     if (problem) this.error = problem;
+  }
+
+  setTimestampsDefault(on: boolean) {
+    this.timestampsDefault = on;
+    localStorage.setItem("airlock-timestamps", on ? "1" : "0");
   }
 
   async allow(kind: keyof DictationAccess) {

@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "items": [
+    {
+      "id": "lfm3-1.7b-q4",
+      "name": "LFM3 1.7B",
+      "description": "Fast text model with strong tool use. Default for chat and the agent.",
+      "model": {
+        "repo": "LiquidAI/LFM3-1.7B-GGUF",
+        "filename": "LFM3-1.7B-Q4_K_M.gguf",
+        "size_bytes": 1099627808,
+        "sha256": "3793e1e6e2266919d6e015287221b41100175a98eddaba92e111aed3b05c93c4"
+      },
+      "context": 4096,
+      "license": "LFM Open License v1.0",
+      "license_url": "https://huggingface.co/LiquidAI/LFM3-1.7B-GGUF/blob/main/LICENSE",
+      "recommended": true,
+      "tags": []
+    },
+    {
+      "id": "lfm3-vl-2b-q4",
+      "name": "LFM3 VL 2B",
+      "description": "Understands images as well as text.",
+      "model": {
+        "repo": "LiquidAI/LFM3-VL-2B-GGUF",
+        "filename": "LFM3-VL-2B-Q4_K_M.gguf",
+        "size_bytes": 1099627808,
+        "sha256": "56dac2e192ff0d9ab8507f4f1aeb4aed0463449bbbefaac79497f041c95f21eb"
+      },
+      "projector": {
+        "repo": "LiquidAI/LFM3-VL-2B-GGUF",
+        "filename": "mmproj-LFM3-VL-2B-Q8_0.gguf",
+        "size_bytes": 203031872,
+        "sha256": "c5c5b58d544a18da919172d2d0368090ea1a4a351b6feb7f8a326a264a5918ab"
+      },
+      "context": 4096,
+      "license": "LFM Open License v1.0",
+      "license_url": "https://huggingface.co/LiquidAI/LFM3-VL-2B-GGUF/blob/main/LICENSE",
+      "recommended": false,
+      "tags": [
+        "vision"
+      ]
+    },
+    {
+      "id": "qwen3.5-4b-abliterated-q4",
+      "name": "Qwen3.5 4B Uncensored",
+      "description": "Answers without safety filtering, so you decide what it is used for. Fits a 4 GB GPU. Also reads images.",
+      "tags": [
+        "uncensored",
+        "vision"
+      ],
+      "model": {
+        "repo": "mradermacher/Huihui-Qwen3.5-4B-abliterated-GGUF",
+        "filename": "Huihui-Qwen3.5-4B-abliterated.Q4_K_M.gguf",
+        "size_bytes": 2707514688,
+        "sha256": "423f10b6ec2d99c3378143d7cd3b80eb4887b3ed92103103ac59173b404f4f7c"
+      },
+      "projector": {
+        "repo": "mradermacher/Huihui-Qwen3.5-4B-abliterated-GGUF",
+        "filename": "Huihui-Qwen3.5-4B-abliterated.mmproj-Q8_0.gguf",
+        "size_bytes": 366894720,
+        "sha256": "650e2af8754b8b10e21debdbaf352cab43cd2435ec8ed56b893b9b581ae4a95c"
+      },
+      "context": 8192,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/mradermacher/Huihui-Qwen3.5-4B-abliterated-GGUF",
+      "recommended": false
+    },
+    {
+      "id": "qwen3.5-9b-abliterated-q4",
+      "name": "Qwen3.5 9B Uncensored",
+      "description": "A larger uncensored model with better answers. Needs about 8 GB of free memory and runs slower on a small GPU.",
+      "tags": [
+        "uncensored",
+        "vision"
+      ],
+      "model": {
+        "repo": "mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF",
+        "filename": "Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf",
+        "size_bytes": 5627045248,
+        "sha256": "ea1858ef4dc4b648b8dbb44612962a0333e945060dd0545ac0f28d7c4416e4b3"
+      },
+      "projector": {
+        "repo": "mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF",
+        "filename": "Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf",
+        "size_bytes": 624229760,
+        "sha256": "cf54897b6bbfa89c809fdc2b8236e0977bed70760b39ee8f11d87296e1d0e046"
+      },
+      "context": 4096,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF",
+      "recommended": false
+    }
+  ]
+}

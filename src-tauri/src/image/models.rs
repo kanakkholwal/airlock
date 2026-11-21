@@ -1,4 +1,4 @@
-use super::catalog::{self, ImageModel, MODELS};
+use super::catalog::{self, ImageModel};
 use crate::llm::download::{fetch_verified, DownloadEvent, Fetch};
 use serde::Serialize;
 use specta::Type;
@@ -37,7 +37,7 @@ pub fn is_downloaded(dir: &Path, m: &ImageModel) -> bool {
 #[specta::specta]
 pub fn image_models(app: AppHandle) -> Result<Vec<ImageModelStatus>, String> {
     let dir = super::models_dir(&app)?;
-    Ok(MODELS
+    Ok(catalog::models()
         .iter()
         .map(|m| {
             let missing = missing_bytes(&dir, m);
@@ -140,7 +140,7 @@ pub fn image_delete_model(app: AppHandle, id: String) -> Result<(), String> {
     let model = catalog::find(&id).ok_or("Unknown image model")?;
     let dir = super::models_dir(&app)?;
     for f in model.files {
-        let shared = MODELS
+        let shared = catalog::models()
             .iter()
             .filter(|m| m.id != model.id && is_downloaded(&dir, m))
             .any(|m| m.files.iter().any(|g| g.name == f.name));
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn missing_bytes_ignores_files_already_present() {
         let tmp = tempfile::tempdir().unwrap();
-        let m = &MODELS[0];
+        let m = &catalog::models()[0];
         let full = m.total_bytes();
         assert_eq!(missing_bytes(tmp.path(), m), full);
         let vae = m.files.iter().find(|f| f.name == "ae.safetensors").unwrap();

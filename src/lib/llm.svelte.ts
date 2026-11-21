@@ -60,13 +60,19 @@ function fitHistory(history: ChatMessage[], contextTokens: number) {
   return out;
 }
 
-const transport: ChatTransport = async (history, onDelta, signal) => {
+const transport: ChatTransport = async (history, onDelta, signal, onTool) => {
   const channel = new Channel<ChatEvent>();
   let failure: string | null = null;
   const usage: Usage = { tokensPerSecond: null, promptTokens: null, completionTokens: null };
   channel.onmessage = (e) => {
     if (e.type === "text") onDelta("text", e.delta);
     else if (e.type === "reasoning") onDelta("reasoning", e.delta);
+    else if (e.type === "tool_call")
+      onTool({ type: "call", callId: e.call_id, name: e.name, arguments: e.arguments, title: e.title });
+    else if (e.type === "tool_approval")
+      onTool({ type: "approval", callId: e.call_id, name: e.name, title: e.title, risk: e.risk });
+    else if (e.type === "tool_result")
+      onTool({ type: "result", callId: e.call_id, output: e.output, isError: e.is_error });
     else if (e.type === "done") {
       usage.tokensPerSecond = e.tokens_per_second;
       usage.promptTokens = e.prompt_tokens;

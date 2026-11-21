@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "items": [
+    {
+      "id": "kokoro-int8-multi-lang-v1_0",
+      "name": "Kokoro natural voices",
+      "description": "Clear English voices, American and British.",
+      "engine": "sherpa-tts",
+      "runtime": "sherpa-kokoro",
+      "license": "Apache-2.0",
+      "archive": {
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-int8-multi-lang-v1_0.tar.bz2",
+        "sha256": "72c347230107ef8a31098ec4d468a605244beef5f1ed00db97efa13518800653",
+        "size": 132353410,
+        "folder": "kokoro-int8-multi-lang-v1_0"
+      },
+      "files": {
+        "model": "model.int8.onnx",
+        "voices": "voices.bin",
+        "tokens": "tokens.txt",
+        "lexicon": "lexicon-us-en.txt"
+      },
+      "default_voice": 3,
+      "recommended": true,
+      "voices": [
+        {
+          "id": 0,
+          "name": "Alloy",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 1,
+          "name": "Aoede",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 2,
+          "name": "Bella",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 3,
+          "name": "Heart",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 4,
+          "name": "Jessica",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 5,
+          "name": "Kore",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 6,
+          "name": "Nicole",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 7,
+          "name": "Nova",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 8,
+          "name": "River",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 9,
+          "name": "Sarah",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 10,
+          "name": "Sky",
+          "accent": "American",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 11,
+          "name": "Adam",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 12,
+          "name": "Echo",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 13,
+          "name": "Eric",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 14,
+          "name": "Fenrir",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 15,
+          "name": "Liam",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 16,
+          "name": "Michael",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 17,
+          "name": "Onyx",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 18,
+          "name": "Puck",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 19,
+          "name": "Santa",
+          "accent": "American",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 20,
+          "name": "Alice",
+          "accent": "British",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 21,
+          "name": "Emma",
+          "accent": "British",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 22,
+          "name": "Isabella",
+          "accent": "British",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 23,
+          "name": "Lily",
+          "accent": "British",
+          "gender": "Female",
+          "language": "en"
+        },
+        {
+          "id": 24,
+          "name": "Daniel",
+          "accent": "British",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 25,
+          "name": "Fable",
+          "accent": "British",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 26,
+          "name": "George",
+          "accent": "British",
+          "gender": "Male",
+          "language": "en"
+        },
+        {
+          "id": 27,
+          "name": "Lewis",
+          "accent": "British",
+          "gender": "Male",
+          "language": "en"
+        }
+      ]
+    }
+  ]
+}

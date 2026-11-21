@@ -37,12 +37,21 @@ static MIGRATIONS: &[M] = &[
 
 /// Nullable columns added outside [`MIGRATIONS`]; see
 /// [`HistoryManager::apply_migrations`].
-const ADDED_COLUMNS: &[&str] = &["source_name", "language", "language_source"];
+const ADDED_COLUMNS: &[&str] = &["source_name", "language", "language_source", "segments"];
 
 /// Every column a [`HistoryEntry`] is read from.
 const ENTRY_COLUMNS: &str = "id, file_name, timestamp, saved, title, transcription_text, \
     post_processed_text, post_process_prompt, post_process_requested, source_name, language, \
-    language_source";
+    language_source, segments";
+
+/// One stretch of a transcript with where it sits in the audio, in milliseconds. Kept for files
+/// so a podcast or a meeting can be read, searched and exported by time.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
+pub struct TimedSegment {
+    pub start_ms: i64,
+    pub end_ms: i64,
+    pub text: String,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct PaginatedHistory {
@@ -81,6 +90,8 @@ pub struct HistoryEntry {
     pub language: Option<String>,
     /// How that language was chosen; `None` before it was recorded.
     pub language_source: Option<LanguageSource>,
+    /// Timed pieces of the transcript, for files; `None` for dictations.
+    pub segments: Option<Vec<TimedSegment>>,
 }
 
 pub struct HistoryManager {
@@ -272,6 +283,9 @@ impl HistoryManager {
                 .get::<_, Option<String>>("language_source")?
                 .as_deref()
                 .and_then(LanguageSource::parse),
+            segments: row
+                .get::<_, Option<String>>("segments")?
+                .and_then(|json| serde_json::from_str(&json).ok()),
         })
     }
 
@@ -304,6 +318,7 @@ impl HistoryManager {
             source_name: None,
             language,
             language_source,
+            segments: None,
         })?;
 
         self.cleanup_old_entries()?;
@@ -328,6 +343,7 @@ impl HistoryManager {
             source_name: Some(source_name),
             language: None,
             language_source: None,
+            segments: None,
         })
     }
 
@@ -388,8 +404,10 @@ impl HistoryManager {
         post_processed_text: Option<String>,
         post_process_prompt: Option<String>,
         language: Option<LanguageDecision>,
+        segments: Option<Vec<TimedSegment>>,
     ) -> Result<HistoryEntry> {
         let (language, language_source) = split_language(language);
+        let segments_json = segments.and_then(|s| serde_json::to_string(&s).ok());
         let conn = self.get_connection()?;
         let updated = conn.execute(
             "UPDATE transcription_history
@@ -397,14 +415,16 @@ impl HistoryManager {
                  post_processed_text = ?2,
                  post_process_prompt = ?3,
                  language = ?4,
-                 language_source = ?5
-             WHERE id = ?6",
+                 language_source = ?5,
+                 segments = ?6
+             WHERE id = ?7",
             params![
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
                 language,
                 language_source.map(LanguageSource::as_str),
+                segments_json,
                 id
             ],
         )?;
@@ -750,7 +770,8 @@ mod tests {
                 post_process_requested BOOLEAN NOT NULL DEFAULT 0,
                 source_name TEXT,
                 language TEXT,
-                language_source TEXT
+                language_source TEXT,
+                segments TEXT
             );",
         )
         .expect("create transcription_history table");

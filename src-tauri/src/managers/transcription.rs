@@ -1011,6 +1011,7 @@ impl TranscriptionManager {
             self.maybe_unload_immediately("empty audio");
             return Ok(Transcription {
                 text: String::new(),
+                segments: vec![],
                 language: None,
             });
         }
@@ -1054,6 +1055,7 @@ impl TranscriptionManager {
 
         Ok(Transcription {
             text: final_result,
+            segments: vec![],
             language: Some(language),
         })
     }
@@ -1243,6 +1245,8 @@ struct BatchContext {
 /// A finished transcription.
 pub struct Transcription {
     pub text: String,
+    /// Timed pieces, filled by file transcription; empty for dictation.
+    pub segments: Vec<crate::managers::history::TimedSegment>,
     /// The language it ran in and how that was chosen; `None` when there was
     /// no audio to run.
     pub language: Option<LanguageDecision>,

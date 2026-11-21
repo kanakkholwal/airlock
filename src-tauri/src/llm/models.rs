@@ -1,4 +1,4 @@
-use super::catalog::{self, CatalogEntry, CatalogFile, CATALOG};
+use super::catalog::{self, CatalogEntry, CatalogFile};
 use super::download::{fetch_verified, DownloadEvent, Fetch};
 use serde::Serialize;
 use specta::Type;
@@ -28,6 +28,7 @@ pub struct ModelStatus {
     pub license: String,
     pub license_url: Option<String>,
     pub recommended: bool,
+    pub tags: Vec<String>,
     pub vision: bool,
     pub imported: bool,
     pub file: FileState,
@@ -135,6 +136,7 @@ fn imported_models(dir: &Path) -> Vec<ModelStatus> {
                     .unwrap_or_else(|| "Unknown, check the source".into()),
                 license_url: repo.map(|r| format!("https://huggingface.co/{r}")),
                 recommended: false,
+                tags: vec![],
                 vision: note["projector"].is_string(),
                 imported: true,
                 file: FileState::Downloaded,
@@ -182,7 +184,7 @@ pub fn resolve(dir: &Path, id: &str) -> Option<(PathBuf, Option<PathBuf>, u32)> 
 #[specta::specta]
 pub fn llm_catalog(app: AppHandle) -> Result<Vec<ModelStatus>, String> {
     let dir = models_dir(&app)?;
-    let mut list: Vec<ModelStatus> = CATALOG
+    let mut list: Vec<ModelStatus> = catalog::all()
         .iter()
         .map(|e| ModelStatus {
             id: e.id.into(),
@@ -192,6 +194,7 @@ pub fn llm_catalog(app: AppHandle) -> Result<Vec<ModelStatus>, String> {
             license: e.license.into(),
             license_url: Some(e.license_url.into()),
             recommended: e.recommended,
+            tags: e.tags.iter().map(|t| t.to_string()).collect(),
             vision: e.projector.is_some(),
             imported: false,
             file: file_state(&dir, e),

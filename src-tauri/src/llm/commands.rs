@@ -28,6 +28,25 @@ pub enum ChatEvent {
     Reasoning {
         delta: String,
     },
+    /// The model asked for a tool; `title` says what it does in words.
+    ToolCall {
+        call_id: String,
+        name: String,
+        arguments: String,
+        title: String,
+    },
+    /// The call needs the person's yes before it runs.
+    ToolApproval {
+        call_id: String,
+        name: String,
+        title: String,
+        risk: crate::agent::tools::Risk,
+    },
+    ToolResult {
+        call_id: String,
+        output: String,
+        is_error: bool,
+    },
     Done {
         tokens_per_second: Option<f64>,
         /// Tokens the model read for this reply, including any cached prefix.
@@ -39,12 +58,21 @@ pub enum ChatEvent {
     },
 }
 
-/// What the server reports once a stream ends.
-#[derive(Debug, Default, Clone, Copy)]
-struct StreamStats {
-    tokens_per_second: Option<f64>,
-    prompt_tokens: Option<u64>,
-    completion_tokens: Option<u64>,
+/// One tool call a model asked for, put back together from its streamed pieces.
+#[derive(Debug, Default, Clone)]
+pub(crate) struct ToolCallReq {
+    pub id: String,
+    pub name: String,
+    pub arguments: String,
+}
+
+/// What the server reports once a stream ends, and any tool calls it asked for.
+#[derive(Debug, Default, Clone)]
+pub(crate) struct StreamStats {
+    pub tokens_per_second: Option<f64>,
+    pub prompt_tokens: Option<u64>,
+    pub completion_tokens: Option<u64>,
+    pub calls: Vec<ToolCallReq>,
 }
 
 /// OpenAI-style messages; a message with images becomes a list of text and image parts.
@@ -137,7 +165,7 @@ pub fn chat_cancel(cancel: State<'_, ChatCancel>) {
 /// arrives; nothing is buffered beyond one network read. Returns the generation speed the
 /// server reports in its final chunk. Provenance: Handy llm_client.rs (OpenAI-compatible client);
 /// reasoning deltas map to the `reasoning` part type.
-async fn stream_completion(
+pub(crate) async fn stream_completion(
     port: u16,
     key: &str,
     body: Value,
@@ -194,6 +222,26 @@ async fn stream_completion(
             if let Some(s) = delta["content"].as_str().filter(|s| !s.is_empty()) {
                 on_chunk(ChatEvent::Text { delta: s.into() });
             }
+            // Tool calls arrive in pieces keyed by `index`: the name once, the arguments a bit
+            // at a time. Some servers send a whole call in one piece, which fits the same shape.
+            if let Some(pieces) = delta["tool_calls"].as_array() {
+                for piece in pieces {
+                    let at = piece["index"].as_u64().unwrap_or(0) as usize;
+                    while stats.calls.len() <= at {
+                        stats.calls.push(ToolCallReq::default());
+                    }
+                    let call = &mut stats.calls[at];
+                    if let Some(id) = piece["id"].as_str().filter(|s| !s.is_empty()) {
+                        call.id = id.into();
+                    }
+                    if let Some(name) = piece["function"]["name"].as_str().filter(|s| !s.is_empty()) {
+                        call.name = name.into();
+                    }
+                    if let Some(args) = piece["function"]["arguments"].as_str() {
+                        call.arguments.push_str(args);
+                    }
+                }
+            }
         }
     }
     Ok(stats)
@@ -211,8 +259,8 @@ pub async fn chat_stream(
     let (port, _, key) = ready_port(&engine).await?;
     let _busy = engine.inner().begin();
     cancel.0.store(false, Ordering::SeqCst);
-    let body = match to_json_messages(&app, &messages) {
-        Ok(m) => json!({ "messages": m, "stream": true }),
+    let wire = match to_json_messages(&app, &messages) {
+        Ok(m) => m,
         Err(message) => {
             let _ = on_event.send(ChatEvent::Error {
                 message: message.clone(),
@@ -220,11 +268,7 @@ pub async fn chat_stream(
             return Err(message);
         }
     };
-    match stream_completion(port, &key, body, &cancel.0, |e| {
-        let _ = on_event.send(e);
-    })
-    .await
-    {
+    match crate::agent::run::chat_loop(&app, port, &key, wire, &cancel.0, &on_event).await {
         Ok(stats) => {
             let _ = on_event.send(ChatEvent::Done {
                 tokens_per_second: stats.tokens_per_second,

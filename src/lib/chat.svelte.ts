@@ -1,4 +1,4 @@
-import { commands, type Conversation, type Message as DbMessage, type Part } from "../bindings";
+import { commands, type Answer, type Conversation, type Message as DbMessage, type Part, type Risk } from "../bindings";
 
 export type { Part };
 
@@ -29,11 +29,21 @@ export type Usage = {
   completionTokens: number | null;
 };
 
+/** A step of the assistant using a tool, in the order it happens. */
+export type ToolEvent =
+  | { type: "call"; callId: string; name: string; arguments: string; title: string }
+  | { type: "approval"; callId: string; name: string; title: string; risk: Risk }
+  | { type: "result"; callId: string; output: string; isError: boolean };
+
+/** A tool call waiting for a yes or no. */
+export type PendingApproval = { callId: string; name: string; title: string; risk: Risk };
+
 /** Streams a reply; resolves when finished. Throws AbortError when cancelled. */
 export type ChatTransport = (
   history: ChatMessage[],
   onDelta: (kind: Delta, text: string) => void,
   signal: AbortSignal,
+  onTool: (event: ToolEvent) => void,
 ) => Promise<Usage>;
 
 export type ChatStats = {
@@ -63,6 +73,12 @@ export const textOf = (m: ChatMessage) =>
 export const reasoningOf = (m: ChatMessage) =>
   m.parts.flatMap((p) => (p.type === "reasoning" ? [p.text] : [])).join("");
 
+/** The result of one tool call in a message, once it has come back. */
+export const resultOf = (m: ChatMessage, callId: string) =>
+  m.parts.find((p): p is Extract<Part, { type: "tool_result" }> => p.type === "tool_result" && p.call_id === callId);
+
+export const hasTools = (m: ChatMessage) => m.parts.some((p) => p.type === "tool_call");
+
 export const imagesOf = (m: ChatMessage) =>
   m.parts.flatMap((p) => (p.type === "image" ? [p.path] : []));
 
@@ -79,6 +95,10 @@ class ChatSession {
   listLoaded = $state(false);
   /** True while a saved conversation is being read from disk. */
   opening = $state(false);
+  /** What each tool call is doing in words; lives only for this session. */
+  toolTitles = $state<Record<string, string>>({});
+  /** Tool calls waiting for the person, by call id. */
+  approvals = $state<Record<string, PendingApproval>>({});
   /** Set by the engine store: asks it to load a model when a message needs one. */
   needModel: (() => void) | null = null;
   private nextId = 1;
@@ -287,6 +307,12 @@ class ChatSession {
   }
 
   // Sends queued user messages once the engine is ready (plan section 14).
+  /** Sends the person's answer on an approval card; the assistant carries on from there. */
+  async answerTool(callId: string, answer: Answer) {
+    delete this.approvals[callId];
+    await commands.agentDecide(callId, answer);
+  }
+
   private async drain() {
     if (this.busy || !this.transport) return;
     const hasQueued = this.messages.some((m) => m.role === "user" && m.status === "queued");
@@ -316,6 +342,20 @@ class ChatSession {
       buffered = [];
     };
 
+    const onTool = (e: ToolEvent) => {
+      // Text that came before the tool must land first, so the order on screen is the real one.
+      flush();
+      if (e.type === "call") {
+        this.toolTitles[e.callId] = e.title;
+        live.parts.push({ type: "tool_call", call_id: e.callId, name: e.name, arguments: e.arguments });
+      } else if (e.type === "approval") {
+        this.approvals[e.callId] = { callId: e.callId, name: e.name, title: e.title, risk: e.risk };
+      } else {
+        delete this.approvals[e.callId];
+        live.parts.push({ type: "tool_result", call_id: e.callId, output: e.output, is_error: e.isError });
+      }
+    };
+
     try {
       const result = await this.transport(
         this.messages.slice(0, -1),
@@ -327,6 +367,7 @@ class ChatSession {
           if (!frame) frame = requestAnimationFrame(flush);
         },
         this.abort.signal,
+        onTool,
       );
       live.tokensPerSecond = result.tokensPerSecond ?? undefined;
       live.promptTokens = result.promptTokens ?? undefined;

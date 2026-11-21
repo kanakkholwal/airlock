@@ -1,3 +1,4 @@
+mod agent;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 pub mod audio_toolkit;
@@ -6,6 +7,7 @@ mod catalog;
 mod chat;
 pub mod cli;
 mod commands;
+mod data;
 mod dictation;
 use dictation::{actions, overlay, secure_input, shortcut, transcription_coordinator};
 pub mod engine_supervisor;
@@ -24,6 +26,7 @@ mod signal_handle;
 mod system_languages;
 mod tray;
 mod tray_i18n;
+mod tts;
 mod utils;
 pub mod webkit_renderer;
 
@@ -218,9 +221,12 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(tray::TrayState::new());
+    data::init(app_handle);
+    agent::manage(app_handle);
     llm::commands::manage(app_handle);
     llm::models::manage(app_handle);
     image::manage(app_handle);
+    tts::manage(app_handle);
     if let Err(e) = chat::commands::manage(app_handle) {
         log::error!("Chat database unavailable: {e}");
     }
@@ -844,6 +850,15 @@ pub fn run(cli_args: CliArgs) {
             image::generate::image_cancel,
             image::generate::image_list,
             image::generate::image_delete,
+            agent::agent_decide,
+            agent::config::agent_get_config,
+            agent::config::agent_set_config,
+            agent::tools::agent_tools,
+            tts::tts_status,
+            tts::tts_install,
+            tts::tts_install_cancel,
+            tts::tts_remove,
+            tts::tts_synthesize,
             commands::check_apple_intelligence_available,
             commands::initialize_enigo,
             commands::initialize_shortcuts,

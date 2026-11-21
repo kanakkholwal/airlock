@@ -319,6 +319,8 @@ impl LlmEngine {
                 &context.to_string(),
             ])
             .args(["--api-key", &api_key])
+            // Lets models that support it call tools, which the assistant relies on.
+            .arg("--jinja")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())

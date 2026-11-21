@@ -8,75 +8,13 @@ use std::sync::Arc;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 
-/// Pinned stable-diffusion.cpp release; digests are the ones GitHub publishes per asset.
-const BUILD: &str = "master-1106-532d2c1";
+use crate::data::{self, BuildSource};
 
-#[derive(Clone, Copy)]
-struct Build {
-    backend: Backend,
-    label: &'static str,
-    recommended: bool,
-    asset: &'static str,
-    sha256: &'static str,
-    size: u64,
+/// The pinned stable-diffusion.cpp release and its per-platform assets are in
+/// `catalog/engines.json`.
+fn builds() -> &'static [BuildSource] {
+    data::engine("sd").map_or(&[], |e| e.builds)
 }
-
-#[cfg(all(windows, target_arch = "x86_64"))]
-const BUILDS: &[Build] = &[
-    Build {
-        backend: Backend::Vulkan,
-        label: "Vulkan (any GPU)",
-        recommended: true,
-        asset: "sd-master-532d2c1-bin-win-vulkan-x64.zip",
-        sha256: "3e66222c87ca27074e1fd8ce79706eef17a8aaf39949906aa1bee7e060f22ecc",
-        size: 30_312_081,
-    },
-    Build {
-        backend: Backend::Cpu,
-        label: "CPU only",
-        recommended: false,
-        asset: "sd-master-532d2c1-bin-win-cpu-x64.zip",
-        sha256: "abef332cfca7861cc567910e79bedb70bfb2920bb4eedac97fcbb6db477f1596",
-        size: 18_358_541,
-    },
-];
-
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-const BUILDS: &[Build] = &[
-    Build {
-        backend: Backend::Vulkan,
-        label: "Vulkan (any GPU)",
-        recommended: true,
-        asset: "sd-master-532d2c1-bin-Linux-Ubuntu-26.04-x86_64-vulkan.zip",
-        sha256: "ca30fe17f1735cdfb4c8561b75799070c25cc86a9e5438f4c0e1b163baae4e12",
-        size: 42_212_329,
-    },
-    Build {
-        backend: Backend::Cpu,
-        label: "CPU only",
-        recommended: false,
-        asset: "sd-master-532d2c1-bin-Linux-Ubuntu-26.04-x86_64.zip",
-        sha256: "0a02f7f51feb0691128f60cf6ff1c686ec23089561cfe7c3b72645f446646e13",
-        size: 29_124_086,
-    },
-];
-
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-const BUILDS: &[Build] = &[Build {
-    backend: Backend::Metal,
-    label: "Metal (Apple GPU)",
-    recommended: true,
-    asset: "sd-master-532d2c1-bin-Darwin-macOS-26.7.2-arm64.zip",
-    sha256: "8146d6ffc75f8ff8f64b62a80fffee8fb714ab65e368e202084135fa07cc6f36",
-    size: 38_331_254,
-}];
-
-#[cfg(not(any(
-    all(windows, target_arch = "x86_64"),
-    all(target_os = "linux", target_arch = "x86_64"),
-    all(target_os = "macos", target_arch = "aarch64"),
-)))]
-const BUILDS: &[Build] = &[];
 
 #[derive(Debug, Clone, Serialize, Type)]
 pub struct ImageEngineStatus {
@@ -103,10 +41,10 @@ fn install_dir(engines: &Path, backend: Backend) -> PathBuf {
     engines.join(dir_name(backend))
 }
 
-/// The installed engine to run, preferring the order of BUILDS (GPU first).
+/// The installed engine to run, preferring the order in the catalog (GPU first).
 pub fn find_cli(app: &AppHandle) -> Result<PathBuf, String> {
     let engines = crate::llm::paths::engines_dir(app)?;
-    BUILDS
+    builds()
         .iter()
         .map(|b| install_dir(&engines, b.backend).join(exe_name()))
         .find(|p| p.exists())
@@ -117,12 +55,12 @@ pub fn find_cli(app: &AppHandle) -> Result<PathBuf, String> {
 #[specta::specta]
 pub fn image_engines(app: AppHandle) -> Result<Vec<ImageEngineStatus>, String> {
     let engines = crate::llm::paths::engines_dir(&app)?;
-    Ok(BUILDS
+    Ok(builds()
         .iter()
         .map(|b| ImageEngineStatus {
             backend: b.backend,
             label: b.label.into(),
-            size_bytes: b.size,
+            size_bytes: b.assets.iter().map(|a| a.size).sum(),
             installed: install_dir(&engines, b.backend).join(exe_name()).exists(),
             recommended: b.recommended,
         })
@@ -137,10 +75,13 @@ pub async fn image_install_engine(
     backend: Backend,
     on_event: Channel<DownloadEvent>,
 ) -> Result<(), String> {
-    let build = BUILDS
+    let source = data::engine("sd").ok_or("This engine is not available on this system")?;
+    let build = source
+        .builds
         .iter()
         .find(|b| b.backend == backend)
         .ok_or("This engine is not available on this system")?;
+    let asset = build.assets.first().ok_or("This engine has no download")?;
     let engines = crate::llm::paths::engines_dir(&app)?;
     let downloads = engines.join(".downloads");
     std::fs::create_dir_all(&downloads).map_err(|e| e.to_string())?;
@@ -155,16 +96,13 @@ pub async fn image_install_engine(
         .unwrap()
         .insert(key.clone(), cancel.clone());
 
-    let target = downloads.join(build.asset);
+    let target = downloads.join(asset.name);
     let fetch = Fetch {
-        url: format!(
-            "https://github.com/leejet/stable-diffusion.cpp/releases/download/{BUILD}/{}",
-            build.asset
-        ),
+        url: source.asset_url(asset),
         target: &target,
-        sha256: build.sha256,
+        sha256: asset.sha256,
     };
-    let fetched = fetch_verified(&fetch, 0, build.size, &cancel, &on_event).await;
+    let fetched = fetch_verified(&fetch, 0, asset.size, &cancel, &on_event).await;
     state.cancels.lock().unwrap().remove(&key);
 
     let result = match fetched {
@@ -227,8 +165,10 @@ mod tests {
 
     #[test]
     fn every_build_has_a_valid_checksum() {
-        for b in BUILDS {
-            assert_eq!(b.sha256.len(), 64, "{}", b.asset);
+        for b in builds() {
+            for a in b.assets {
+                assert_eq!(a.sha256.len(), 64, "{}", a.name);
+            }
         }
     }
 }

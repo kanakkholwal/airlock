@@ -3,6 +3,7 @@
   import { StarIcon as StarFilledIcon } from "@solar-icons/svelte/bold";
   import { speech } from "#lib/speech.svelte.js";
   import ConfirmDialog from "#lib/components/app/confirm-dialog.svelte";
+  import TranscriptView from "#lib/components/app/transcript-view.svelte";
   import StateView from "#lib/components/app/state-view.svelte";
   import { Button } from "#lib/components/ui/button/index.js";
   import { CopyButton } from "#lib/components/ui/copy-button/index.js";
@@ -66,7 +67,7 @@
             </Button>
           </div>
         </div>
-        <p class="text-pretty whitespace-pre-wrap">{textOf(e)}</p>
+        <TranscriptView entry={e} />
       </li>
     {/each}
   </ul>

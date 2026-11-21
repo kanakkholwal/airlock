@@ -11,6 +11,7 @@ use super::{
     Transcription, TranscriptionManager,
 };
 use crate::audio_toolkit::chunking::Chunker;
+use crate::managers::history::TimedSegment;
 use crate::engine_supervisor::EngineError;
 use crate::managers::audio::create_detector;
 
@@ -45,6 +46,7 @@ impl TranscriptionManager {
         if total == 0 {
             return Ok(Some(Transcription {
                 text: String::new(),
+                segments: vec![],
                 language: None,
             }));
         }
@@ -65,6 +67,8 @@ impl TranscriptionManager {
         let mut pieces = audio.chunks(FEED_SAMPLES);
 
         let mut transcripts: Vec<Transcript> = Vec::new();
+        // Where each chunk starts in the file and how long it is, in milliseconds.
+        let mut spans: Vec<(i64, i64)> = Vec::new();
         let mut done = 0;
         control.progress(done, total);
         loop {
@@ -96,6 +100,7 @@ impl TranscriptionManager {
                     }
                 };
                 transcripts.push(transcript);
+                spans.push((samples_to_ms(done), samples_to_ms(len)));
                 done += len;
                 control.progress(done, total);
             }
@@ -105,6 +110,7 @@ impl TranscriptionManager {
         }
 
         debug!("Transcribed {} chunks in the background", transcripts.len());
+        let segments = build_segments(&transcripts, &spans);
         let language = setup.spoken_language(agreed_language(&transcripts).as_deref());
         let paragraphs: Vec<String> = transcripts
             .into_iter()
@@ -132,7 +138,95 @@ impl TranscriptionManager {
         );
         Ok(Some(Transcription {
             text: paragraphs.join("\n\n"),
+            segments,
             language: Some(language),
         }))
+    }
+}
+
+fn samples_to_ms(samples: usize) -> i64 {
+    (samples as i64) * 1000 / 16_000
+}
+
+/// Puts every chunk's timed pieces on the file's own clock. A chunk whose model gave no usable
+/// times still gets one piece covering the chunk, so nothing is left without a time.
+fn build_segments(transcripts: &[Transcript], spans: &[(i64, i64)]) -> Vec<TimedSegment> {
+    let mut out = Vec::new();
+    for (t, (start, length)) in transcripts.iter().zip(spans) {
+        let timed = t.segments.iter().any(|s| s.t1_ms > 0);
+        let before = out.len();
+        if timed {
+            for s in t.segments.iter().filter(|s| !s.text.trim().is_empty()) {
+                out.push(TimedSegment {
+                    start_ms: start + s.t0_ms,
+                    end_ms: start + s.t1_ms.max(s.t0_ms),
+                    text: s.text.trim().to_string(),
+                });
+            }
+        }
+        if out.len() == before && !t.text.trim().is_empty() {
+            out.push(TimedSegment {
+                start_ms: *start,
+                end_ms: start + length,
+                text: t.text.trim().to_string(),
+            });
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod segment_tests {
+    use super::*;
+    use transcribe_cpp::Segment;
+
+    fn piece(t0: i64, t1: i64, text: &str) -> Segment {
+        Segment {
+            t0_ms: t0,
+            t1_ms: t1,
+            text: text.into(),
+            ..Segment::default()
+        }
+    }
+
+    #[test]
+    fn times_move_onto_the_files_clock() {
+        let first = Transcript {
+            text: "Hello there. Second.".into(),
+            segments: vec![piece(0, 1500, "Hello there."), piece(1500, 2400, " Second.")],
+            ..Transcript::default()
+        };
+        let second = Transcript {
+            text: "Later.".into(),
+            segments: vec![piece(0, 800, "Later.")],
+            ..Transcript::default()
+        };
+        let out = build_segments(&[first, second], &[(0, 2400), (30_000, 800)]);
+        assert_eq!(out.len(), 3);
+        assert_eq!((out[1].start_ms, out[1].end_ms, out[1].text.as_str()), (1500, 2400, "Second."));
+        assert_eq!((out[2].start_ms, out[2].end_ms), (30_000, 30_800));
+    }
+
+    #[test]
+    fn a_chunk_without_times_still_gets_one_timed_piece() {
+        let chunk = Transcript {
+            text: "No times here.".into(),
+            segments: vec![piece(0, 0, "No times here.")],
+            ..Transcript::default()
+        };
+        let out = build_segments(&[chunk], &[(60_000, 5_000)]);
+        assert_eq!(out, vec![TimedSegment { start_ms: 60_000, end_ms: 65_000, text: "No times here.".into() }]);
+    }
+
+    #[test]
+    fn silent_chunks_add_nothing() {
+        let quiet = Transcript::default();
+        assert!(build_segments(&[quiet], &[(0, 1000)]).is_empty());
+    }
+
+    #[test]
+    fn samples_convert_at_16_khz() {
+        assert_eq!(samples_to_ms(16_000), 1000);
+        assert_eq!(samples_to_ms(8_000), 500);
     }
 }

@@ -7,6 +7,7 @@
   import { page } from "$app/state";
   import ExploreModels from "#lib/components/app/explore-models.svelte";
   import SpeechModels from "#lib/components/app/speech-models.svelte";
+  import VoiceModels from "#lib/components/app/voice-models.svelte";
   import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
   import { ChatLineIcon, CpuBoltIcon, DangerTriangleIcon, EyeIcon, MonitorIcon } from "@solar-icons/svelte/linear";
   import { inTauri } from "#lib/env.js";
@@ -84,6 +85,7 @@
     <TabsList>
       <TabsTrigger value="chat">Chat</TabsTrigger>
       <TabsTrigger value="speech">Speech</TabsTrigger>
+      <TabsTrigger value="voice">Voice</TabsTrigger>
       <TabsTrigger value="explore">Explore</TabsTrigger>
     </TabsList>
   </Tabs>
@@ -95,6 +97,8 @@
       </p>
       <SpeechModels />
     </section>
+  {:else if tab === "voice"}
+    <VoiceModels />
   {:else if tab === "explore"}
     <ExploreModels />
   {:else}
@@ -186,6 +190,7 @@
               <span class="font-medium">{m.name}</span>
               {#if m.recommended}<Badge size="sm">Recommended</Badge>{/if}
               {#if m.vision}<Badge size="sm" variant="info">Vision</Badge>{/if}
+              {#if m.tags?.includes("uncensored")}<Badge size="sm" variant="warning">Uncensored</Badge>{/if}
               {#if loaded(m)}<Badge size="sm" variant="success">Loaded</Badge>{/if}
             </div>
             <p class="mt-1 text-sm text-muted-foreground text-pretty">{m.description}</p>

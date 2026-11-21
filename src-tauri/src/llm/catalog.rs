@@ -1,5 +1,7 @@
-use serde::Serialize;
+use crate::data::{leak_slice, leak_str, load, CHAT_MODELS};
+use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy, Serialize, Type)]
 pub struct CatalogFile {
@@ -21,52 +23,69 @@ pub struct CatalogEntry {
     pub license: &'static str,
     pub license_url: &'static str,
     pub recommended: bool,
+    /// Short labels such as `vision` or `uncensored`, shown as badges.
+    pub tags: &'static [&'static str],
 }
 
-/// Decision (product): weights are never bundled; they download on the user's action.
-/// Sizes and hashes come from the Hugging Face LFS metadata (2026-11-20).
-pub const CATALOG: &[CatalogEntry] = &[
-    CatalogEntry {
-        id: "lfm3-1.7b-q4",
-        name: "LFM3 1.7B",
-        description: "Fast text model with strong tool use. Default for chat and the agent.",
-        model: CatalogFile {
-            repo: "LiquidAI/LFM3-1.7B-GGUF",
-            filename: "LFM3-1.7B-Q4_K_M.gguf",
-            size_bytes: 1_099_627_808,
-            sha256: "3793e1e6e2266919d6e015287221b41100175a98eddaba92e111aed3b05c93c4",
-        },
-        projector: None,
-        context: 4096,
-        license: "LFM Open License v1.0",
-        license_url: "https://huggingface.co/LiquidAI/LFM3-1.7B-GGUF/blob/main/LICENSE",
-        recommended: true,
-    },
-    CatalogEntry {
-        id: "lfm3-vl-2b-q4",
-        name: "LFM3 VL 2B",
-        description: "Understands images as well as text.",
-        model: CatalogFile {
-            repo: "LiquidAI/LFM3-VL-2B-GGUF",
-            filename: "LFM3-VL-2B-Q4_K_M.gguf",
-            size_bytes: 1_099_627_808,
-            sha256: "56dac2e192ff0d9ab8507f4f1aeb4aed0463449bbbefaac79497f041c95f21eb",
-        },
-        projector: Some(CatalogFile {
-            repo: "LiquidAI/LFM3-VL-2B-GGUF",
-            filename: "mmproj-LFM3-VL-2B-Q8_0.gguf",
-            size_bytes: 203_031_872,
-            sha256: "c5c5b58d544a18da919172d2d0368090ea1a4a351b6feb7f8a326a264a5918ab",
-        }),
-        context: 4096,
-        license: "LFM Open License v1.0",
-        license_url: "https://huggingface.co/LiquidAI/LFM3-VL-2B-GGUF/blob/main/LICENSE",
-        recommended: false,
-    },
-];
+#[derive(Deserialize)]
+struct RawFile {
+    repo: String,
+    filename: String,
+    size_bytes: u64,
+    sha256: String,
+}
+
+#[derive(Deserialize)]
+struct RawEntry {
+    id: String,
+    name: String,
+    description: String,
+    model: RawFile,
+    #[serde(default)]
+    projector: Option<RawFile>,
+    context: u32,
+    license: String,
+    license_url: String,
+    #[serde(default)]
+    recommended: bool,
+    #[serde(default)]
+    tags: Vec<String>,
+}
+
+fn file(raw: RawFile) -> CatalogFile {
+    CatalogFile {
+        repo: leak_str(raw.repo),
+        filename: leak_str(raw.filename),
+        size_bytes: raw.size_bytes,
+        sha256: leak_str(raw.sha256),
+    }
+}
+
+/// Decision (product): weights are never bundled; they download on the user's action. The list
+/// lives in `catalog/chat-models.json` (sizes and hashes from the Hugging Face LFS metadata).
+pub fn all() -> &'static [CatalogEntry] {
+    static CELL: OnceLock<Vec<CatalogEntry>> = OnceLock::new();
+    CELL.get_or_init(|| {
+        load::<RawEntry>("chat-models", CHAT_MODELS, |e| e.id.as_str())
+            .into_iter()
+            .map(|e| CatalogEntry {
+                id: leak_str(e.id),
+                name: leak_str(e.name),
+                description: leak_str(e.description),
+                model: file(e.model),
+                projector: e.projector.map(file),
+                context: e.context,
+                license: leak_str(e.license),
+                license_url: leak_str(e.license_url),
+                recommended: e.recommended,
+                tags: leak_slice(e.tags.into_iter().map(leak_str).collect()),
+            })
+            .collect()
+    })
+}
 
 pub fn find(id: &str) -> Option<&'static CatalogEntry> {
-    CATALOG.iter().find(|e| e.id == id)
+    all().iter().find(|e| e.id == id)
 }
 
 impl CatalogEntry {
@@ -94,8 +113,10 @@ mod tests {
 
     #[test]
     fn ids_are_unique_and_hashes_look_right() {
-        for (i, e) in CATALOG.iter().enumerate() {
-            assert!(CATALOG[i + 1..].iter().all(|o| o.id != e.id));
+        let all = all();
+        assert!(!all.is_empty());
+        for (i, e) in all.iter().enumerate() {
+            assert!(all[i + 1..].iter().all(|o| o.id != e.id));
             for f in e.files() {
                 assert_eq!(f.sha256.len(), 64);
                 assert!(f.sha256.chars().all(|c| c.is_ascii_hexdigit()));

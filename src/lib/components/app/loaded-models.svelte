@@ -4,17 +4,25 @@
     ChatLineIcon,
     GalleryIcon,
     Microphone3Icon,
+    PauseIcon,
+    PlayIcon,
     PowerIcon,
+    SoundwaveIcon,
     SpeedometerLowIcon,
     StopCircleIcon,
+    Tuning2Icon,
   } from "@solar-icons/svelte/linear";
   import { llm } from "#lib/llm.svelte.js";
   import { images } from "#lib/images.svelte.js";
+  import { speaker } from "#lib/speak.svelte.js";
   import { speech } from "#lib/speech.svelte.js";
+  import { tts } from "#lib/tts.svelte.js";
+  import VoicePicker from "#lib/components/app/voice-picker.svelte";
   import { rateRealtime, rateSpeed, speedLabel, type SpeedRating } from "#lib/speed.js";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
   import { Popover, PopoverContent, PopoverTrigger } from "#lib/components/ui/popover/index.js";
+  import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#lib/components/ui/collapsible/index.js";
   import { Progress } from "#lib/components/ui/progress/index.js";
 
   // Decision (product): one place, on every screen, that answers "what is using my memory right
@@ -50,22 +58,51 @@
   );
 
   const making = $derived(images.run !== null);
-  const count = $derived((chat ? 1 : 0) + (dictation ? 1 : 0) + (making ? 1 : 0));
-  const busy = $derived(chat?.loading || dictation?.loading || (making && images.run?.phase !== "making") || false);
+
+  // Models that are set up but not in memory right now, so they can be loaded from here.
+  const chatIdle = $derived(
+    !chat && chatState !== "failed" && llm.engines.some((e) => e.installed) && llm.downloaded.length > 0,
+  );
+  const speechIdleName = $derived(
+    !dictation && speech.current ? (speech.models.find((m) => m.id === speech.current)?.name ?? null) : null,
+  );
+
+  // The voice engine is not resident: it starts for each sentence and exits. So its state is
+  // what it is doing, not whether it is loaded.
+  const voiceReady = $derived(tts.ready);
+  const voiceBusy = $derived(speaker.speakingId !== null || tts.making > 0);
+  const voiceState = $derived(
+    speaker.preparing || tts.making > 0
+      ? "Getting the voice ready"
+      : speaker.paused
+        ? "Paused"
+        : speaker.speakingId !== null
+          ? `Reading aloud${speaker.position.of > 1 ? ` · ${speaker.position.at} of ${speaker.position.of}` : ""}`
+          : "Ready. Starts only when it reads",
+  );
+
+  const count = $derived((chat ? 1 : 0) + (dictation ? 1 : 0) + (making ? 1 : 0) + (voiceBusy ? 1 : 0));
+  const busy = $derived(
+    chat?.loading || dictation?.loading || speaker.preparing || (making && images.run?.phase !== "making") || false,
+  );
 
   const label = $derived(
-    count === 0 ? "Nothing loaded" : count === 1 ? (chat?.name ?? dictation?.name ?? "Making an image") : `${count} models loaded`,
+    count === 0
+      ? "Nothing loaded"
+      : count === 1
+        ? (chat?.name ?? dictation?.name ?? (voiceBusy ? "Reading aloud" : "Making an image"))
+        : `${count} in use`,
   );
 
   // A bar scaled so "excellent" sits near the end: 150 tokens per second, 40x real time.
   const bar = (value: number, max: number) => `${Math.min(100, Math.max(4, (value / max) * 100))}%`;
 </script>
 
-{#snippet tile(Icon: Component<{ size?: number | string }>, pulsing: boolean)}
+{#snippet tile(Icon: Component<{ size?: number | string }>, pulsing: boolean, off = false)}
   <span class="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
     <Icon size={18} />
     <span
-      class="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-popover {pulsing ? 'animate-pulse bg-warning' : 'bg-success'}"
+      class="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-popover {off ? 'bg-muted-foreground/40' : pulsing ? 'animate-pulse bg-warning' : 'bg-success'}"
     ></span>
   </span>
 {/snippet}
@@ -85,10 +122,10 @@
     <div class="flex flex-col gap-1">
       <div class="flex items-center justify-between px-2 pt-1 pb-1.5">
         <p class="text-sm font-medium">In memory</p>
-        <span class="text-sm text-muted-foreground tabular-nums">{count === 0 ? "Free" : `${count} loaded`}</span>
+        <span class="text-sm text-muted-foreground tabular-nums">{count === 0 ? "Free" : `${count} in use`}</span>
       </div>
 
-      {#if count === 0}
+      {#if count === 0 && !chatIdle && !speechIdleName && !voiceReady}
         <div class="flex flex-col items-center gap-2 rounded-xl bg-muted/50 px-4 py-6 text-center motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
           <PowerIcon size={22} class="text-muted-foreground" />
           <p class="text-sm text-pretty">Nothing is loaded, so the memory is free.</p>
@@ -163,6 +200,60 @@
               <p class="mt-2 pl-12 text-sm text-muted-foreground">Dictate once and its speed shows here.</p>
             {/if}
           {/if}
+        </div>
+      {/if}
+
+      {#if chatIdle}
+        <div class="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-muted/50 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
+          {@render tile(ChatLineIcon, false, true)}
+          <div class="min-w-24 flex-1">
+            <p class="truncate text-sm font-medium">Chat model</p>
+            <p class="text-sm text-muted-foreground">Not loaded. It loads when you send a message.</p>
+          </div>
+          <Button size="sm" variant="secondary" class="gap-1.5" onclick={() => llm.ensureLoaded()}>
+            <PlayIcon size={16} />Load
+          </Button>
+        </div>
+      {/if}
+
+      {#if speechIdleName}
+        <div class="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-muted/50 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
+          {@render tile(Microphone3Icon, false, true)}
+          <div class="min-w-24 flex-1">
+            <p class="truncate text-sm font-medium">{speechIdleName}</p>
+            <p class="text-sm text-muted-foreground">Dictation · Not loaded. It loads when you dictate.</p>
+          </div>
+          <Button size="sm" variant="secondary" class="gap-1.5" onclick={() => speech.use(speech.current ?? "")}>
+            <PlayIcon size={16} />Load
+          </Button>
+        </div>
+      {/if}
+
+      {#if voiceReady}
+        <div class="rounded-xl p-2 transition-colors hover:bg-muted/50 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-300">
+          <div class="flex items-center gap-3">
+            {@render tile(SoundwaveIcon, speaker.preparing || tts.making > 0, !voiceBusy)}
+            <div class="min-w-24 flex-1">
+              <p class="truncate text-sm font-medium">{tts.modelName} · {tts.voiceName}</p>
+              <p class="text-sm text-muted-foreground">Voice · {voiceState}</p>
+            </div>
+            {#if speaker.speakingId !== null && !speaker.preparing}
+              <Button size="sm" variant="ghost" class="gap-1.5" onclick={() => (speaker.paused ? speaker.resume() : speaker.pause())}>
+                {#if speaker.paused}<PlayIcon size={16} />Resume{:else}<PauseIcon size={16} />Pause{/if}
+              </Button>
+              <Button size="sm" variant="ghost" class="gap-1.5" onclick={() => speaker.stop()}>
+                <StopCircleIcon size={16} />Stop
+              </Button>
+            {/if}
+          </div>
+          <Collapsible class="mt-1 pl-12">
+            <CollapsibleTrigger class="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <Tuning2Icon size={14} />Voice and speed
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div class="pt-3 pb-1"><VoicePicker /></div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       {/if}
 

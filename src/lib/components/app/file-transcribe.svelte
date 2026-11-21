@@ -6,6 +6,8 @@
   import { inTauri } from "#lib/env.js";
   import { speech } from "#lib/speech.svelte.js";
   import StateView from "#lib/components/app/state-view.svelte";
+  import TranscriptView from "#lib/components/app/transcript-view.svelte";
+  import { Switch } from "#lib/components/ui/switch/index.js";
   import { Alert, AlertDescription } from "#lib/components/ui/alert/index.js";
   import { Badge } from "#lib/components/ui/badge/index.js";
   import { Button } from "#lib/components/ui/button/index.js";
@@ -80,6 +82,20 @@
     </Alert>
   {/each}
 
+  <div class="flex items-center justify-between gap-6 rounded-2xl bg-card px-4 py-3">
+    <div class="min-w-0">
+      <div class="font-[450]">Show timestamps</div>
+      <div class="text-sm text-muted-foreground text-pretty">
+        For podcasts and meetings: each line starts with when it was said. Any transcript can switch back to plain text.
+      </div>
+    </div>
+    <Switch
+      aria-label="Show timestamps by default"
+      checked={speech.timestampsDefault}
+      onCheckedChange={(v) => speech.setTimestampsDefault(v)}
+    />
+  </div>
+
   {#if speech.fileJobs.length === 0}
     <StateView
       icon={UploadMinimalisticIcon}
@@ -116,7 +132,7 @@
           {:else if job?.state === "failed"}
             <p class="text-sm text-destructive-strong">{job.error}</p>
           {:else if textOf(id)}
-            <p class="line-clamp-4 text-sm text-pretty whitespace-pre-wrap text-muted-foreground">{textOf(id)}</p>
+            {#if e}<TranscriptView entry={e} clamp />{/if}
           {/if}
         </li>
       {/each}

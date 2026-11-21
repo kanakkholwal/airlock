@@ -863,6 +863,7 @@ impl ShortcutAction for TranscribeAction {
                         Ok(Transcription {
                             text: transcription,
                             language,
+                            ..
                         }) => {
                             debug!(
                                 "Transcription completed in {:?}: '{}'",

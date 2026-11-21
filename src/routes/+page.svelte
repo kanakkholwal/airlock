@@ -1,8 +1,9 @@
 <script lang="ts">
   import { convertFileSrc } from "@tauri-apps/api/core";
-  import { chat, imagesOf, reasoningOf, textOf } from "#lib/chat.svelte.js";
+  import { chat, hasTools, imagesOf, reasoningOf, resultOf, textOf } from "#lib/chat.svelte.js";
   import { speaker } from "#lib/speak.svelte.js";
   import ChatComposer from "#lib/components/app/chat-composer.svelte";
+  import ChatToolCall from "#lib/components/app/chat-tool-call.svelte";
   import EngineBanner from "#lib/components/app/engine-banner.svelte";
   import FirstRun from "#lib/components/app/first-run.svelte";
   import { llm } from "#lib/llm.svelte.js";
@@ -86,6 +87,40 @@
             {:else}
               <Message align="start" aria-label="Assistant" animated={m.fresh === true}>
                 <MessageContent class="w-full max-w-[80cqw]">
+                  {#if hasTools(m)}
+                    <!-- A reply that used tools is shown step by step, in the order it happened. -->
+                    <div class="flex flex-col gap-2">
+                      {#each m.parts as p, pi (pi)}
+                        {@const last = pi === m.parts.length - 1}
+                        {#if p.type === "reasoning"}
+                          <Reasoning thinking={streaming && last} duration={m.thinkingSeconds ?? 0}>
+                            <p class="text-sm whitespace-pre-wrap text-muted-foreground">{p.text}</p>
+                          </Reasoning>
+                        {:else if p.type === "text"}
+                          <MessageBubble variant="ghost">
+                            <StreamingText layout="inline">
+                              <StreamingTextContent markdown content={p.text} streaming={streaming && last} />
+                            </StreamingText>
+                          </MessageBubble>
+                        {:else if p.type === "tool_call"}
+                          <ChatToolCall call={p} result={resultOf(m, p.call_id)} approval={chat.approvals[p.call_id]} />
+                        {/if}
+                      {/each}
+                      {#if streaming && m.parts.at(-1)?.type === "tool_result"}<MessageTyping />{/if}
+                      {#if m.status === "error"}
+                        <MessageBubble variant="destructive">{m.error ?? "The reply failed."}</MessageBubble>
+                      {:else if m.status === "done" && text}
+                        <MessageActions>
+                          <MessageActionsBar>
+                            <MessageActionsCopy {text} />
+                            {#if i === chat.messages.length - 1}
+                              <MessageActionsRegenerate onclick={() => chat.regenerate()} />
+                            {/if}
+                          </MessageActionsBar>
+                        </MessageActions>
+                      {/if}
+                    </div>
+                  {:else}
                   {#if thoughts}
                     <Reasoning thinking={streaming && !text} duration={m.thinkingSeconds ?? 0}>
                       <p class="text-sm whitespace-pre-wrap text-muted-foreground">{thoughts}</p>
@@ -125,6 +160,7 @@
                       </StreamingText>
                     {/if}
                   </MessageBubble>
+                  {/if}
                 </MessageContent>
               </Message>
             {/if}

@@ -301,16 +301,43 @@ impl From<&CatalogModel> for ModelDescriptor {
     }
 }
 
+/// Decision (architecture): like every other catalog, speech models can be added or replaced
+/// from `<app data>/catalog/speech-models.json` (`{"schema": 2, "models": [...]}` in the same
+/// shape as `catalog.json`). A bad file is skipped with a warning.
+fn merge_user_models(root: &mut CatalogRoot) {
+    #[derive(Deserialize)]
+    struct UserModels {
+        schema: u32,
+        models: Vec<CatalogModel>,
+    }
+    let Some(text) = crate::data::user_file("speech-models") else {
+        return;
+    };
+    match serde_json::from_str::<UserModels>(&text) {
+        Ok(user) if user.schema == SCHEMA => {
+            for model in user.models {
+                match root.models.iter().position(|m| m.id == model.id) {
+                    Some(at) => root.models[at] = model,
+                    None => root.models.push(model),
+                }
+            }
+        }
+        Ok(user) => log::warn!("Ignoring speech-models.json: unsupported schema {}", user.schema),
+        Err(e) => log::warn!("Ignoring speech-models.json: {e}"),
+    }
+}
+
 /// The raw parsed catalog. Kept alive (not consumed) so data that deliberately
 /// stays out of [`ModelDescriptor`] (mirrors, results) can
 /// be looked up separately.
 static ROOT: Lazy<CatalogRoot> = Lazy::new(|| {
-    let root: CatalogRoot = serde_json::from_str(include_str!("catalog.json"))
+    let mut root: CatalogRoot = serde_json::from_str(include_str!("catalog.json"))
         .expect("bundled catalog.json is valid JSON matching the catalog schema");
     assert_eq!(
         root.schema, SCHEMA,
         "bundled catalog.json has an unsupported schema"
     );
+    merge_user_models(&mut root);
     root
 });
 
