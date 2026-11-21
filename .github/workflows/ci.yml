@@ -1,0 +1,65 @@
+name: CI
+
+# Catches build breaks on other operating systems before a tag does. A release build takes
+# about half an hour; this compiles without packaging, so it is much cheaper.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interface:
+    name: Interface checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+
+  rust:
+    name: Rust (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-22.04
+          - name: macOS
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: ci-${{ matrix.os }}
+
+      - name: Linux system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
+            libgtk-layer-shell-dev libasound2-dev libssl-dev libxdo-dev \
+            libx11-dev libxtst-dev libopenblas-dev cmake clang
+
+      # The Tauri build script only needs the web output folder to exist.
+      - name: Placeholder web output
+        run: mkdir -p apps/desktop/build
+
+      - name: Compile
+        working-directory: apps/desktop/src-tauri
+        run: cargo check --locked --lib
