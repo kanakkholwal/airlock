@@ -26,7 +26,7 @@ export const tools = [
   { id: "dictation", name: "Dictation", role: "Any app", description: "Hold a shortcut anywhere, speak, and the words are typed where your cursor is." },
   { id: "transcribe", name: "Transcribe", role: "Files", description: "Turn recordings into text with timestamps, then export SRT or VTT." },
   { id: "voice", name: "Read aloud", role: "Natural voices", description: "Paste any text and hear it in a clear voice that runs on this computer." },
-  { id: "images", name: "Images", role: "Your GPU", description: "Describe a picture and make it locally. Every image on this page was made that way." },
+  { id: "images", name: "Images", role: "Your GPU", description: "Describe a picture and make it on your own graphics card. It is saved to your private library." },
   { id: "library", name: "Library", role: "Private by default", description: "Everything you make stays in one place, and nothing is shared unless you say so." },
 ];
 
@@ -37,14 +37,6 @@ export const ledger = [
   { what: "Model downloads", where: "Hugging Face", when: "When you press Download" },
   { what: "Engine downloads", where: "GitHub", when: "When you press Install" },
   { what: "Update checks", where: "GitHub", when: "Version number only" },
-];
-
-export const pictures = [
-  { src: "/img/wolf.jpg", alt: "A paper-craft wolf standing in a forest", prompt: "A paper-craft wolf in a forest, soft light" },
-  { src: "/img/fox.jpg", alt: "A paper-craft fox sitting among paper trees", prompt: "A paper-craft fox in a forest, soft light" },
-  { src: "/img/lion.jpg", alt: "A paper-craft lion in a forest", prompt: "A paper-craft lion in a forest, soft light" },
-  { src: "/img/lighthouse.jpg", alt: "A lighthouse on a cliff at dusk, as an oil painting", prompt: "A lighthouse on a cliff at dusk, oil painting" },
-  { src: "/img/nook.jpg", alt: "A book on a windowsill with rain on the glass", prompt: "A cozy reading nook with rain on the window" },
 ];
 
 export const faq = [
@@ -79,31 +71,12 @@ export const faq = [
 export type MenuItem = { label: string; desc: string; href: string; icon: Component<{ size?: number }> };
 export type Menu = {
   label: string;
-  feature: { title: string; desc: string; cta: string; href: string; image: string; alt: string };
+  feature: { title: string; desc: string; cta: string; href: string };
   items: MenuItem[];
 };
 
-// The header menus. Each has one feature tile with a picture made in Airlock, then its links.
+// The header menus. Each has one feature tile, then its links.
 export const menus: Menu[] = [
-  {
-    label: "Studio",
-    feature: {
-      title: "One studio, six rooms",
-      desc: "Chat, voice, images and more share your models and one private library.",
-      cta: "See the tools",
-      href: "#tools",
-      image: "/img/fox.jpg",
-      alt: "A paper-craft fox, made with Airlock",
-    },
-    items: [
-      { label: "Chat", desc: "Local models, pictures in", href: "#tools", icon: ChatLineIcon },
-      { label: "Dictation", desc: "Speak in any app", href: "#tools", icon: KeyboardIcon },
-      { label: "Transcribe", desc: "Recordings to text", href: "#tools", icon: DocumentTextIcon },
-      { label: "Read aloud", desc: "Natural local voices", href: "#tools", icon: VolumeLoudIcon },
-      { label: "Images", desc: "Made on your GPU", href: "#tools", icon: GalleryIcon },
-      { label: "Library", desc: "One private place", href: "#tools", icon: FolderOpenIcon },
-    ],
-  },
   {
     label: "Privacy",
     feature: {
@@ -111,8 +84,6 @@ export const menus: Menu[] = [
       desc: "The whole list, with when and where to.",
       cta: "Read the ledger",
       href: "#privacy",
-      image: "/img/nook.jpg",
-      alt: "A book on a windowsill with rain on the glass, made with Airlock",
     },
     items: [
       { label: "Stays here", desc: "Chats, images and voice", href: "#privacy", icon: LockKeyholeIcon },
@@ -128,8 +99,6 @@ export const menus: Menu[] = [
       desc: "A short list that fits modest hardware, plus any GGUF from Hugging Face.",
       cta: "See the models",
       href: "#models",
-      image: "/img/wolf.jpg",
-      alt: "A paper-craft wolf, made with Airlock",
     },
     items: [
       { label: "Starter models", desc: "Small, fast, licensed", href: "#models", icon: CpuIcon },
@@ -144,7 +113,6 @@ export const footerColumns = [
   {
     title: "Product",
     links: [
-      { label: "What it does", href: "#tools" },
       { label: "Privacy", href: "#privacy" },
       { label: "Models", href: "#models" },
       { label: "Download", href: "#download" },

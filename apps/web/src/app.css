@@ -624,6 +624,54 @@
 			filter: blur(0);
 		}
 	}
+	@keyframes card-fade-up {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+	}
+	@keyframes typing-dot {
+		30% {
+			opacity: 1;
+			transform: translateY(-2px);
+		}
+	}
+	@keyframes message-enter-start {
+		from {
+			opacity: 0;
+			transform: scale(0.9) translateX(-24px);
+		}
+	}
+	@keyframes message-enter-end {
+		from {
+			opacity: 0;
+			transform: scale(0.9) translateX(24px);
+		}
+	}
+	@keyframes reasoning-shimmer {
+		to {
+			background-position: -200% 0;
+		}
+	}
+	@keyframes pop-in {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+	}
+	@keyframes text-transition-enter {
+		from {
+			opacity: var(--tt-from-opacity, 0);
+			transform: translate(var(--tt-from-x, 0px), var(--tt-from-y, 0px)) rotate(var(--tt-from-rotate, 0deg)) scale(var(--tt-from-scale, 1));
+			filter: blur(var(--tt-from-blur, 0px));
+		}
+	}
+	@keyframes reasoning-step-in {
+		from {
+			grid-template-rows: 0fr;
+			opacity: 0;
+		}
+	}
 }
 
 @layer baby-ui {
@@ -702,6 +750,18 @@
 		}
 		.roll-text--tilt.roll-text--animating .roll-unit__line {
 			animation-duration: 100ms;
+		}
+		.card-fade-up, .fade-in {
+			animation: none;
+		}
+		.message-spring-start, .message-spring-end {
+			animation: none;
+		}
+		.menu-check path, .menu-dot {
+			transition: none;
+		}
+		.reasoning-step-in {
+			animation-name: fade-in;
 		}
 	}
 	.spinner {
@@ -899,6 +959,64 @@
 		opacity: 1;
 		transform: none;
 		filter: none;
+	}
+	.card-fade-up {
+		animation: card-fade-up var(--duration-overlay) var(--ease-ui-out) both;
+	}
+	.typing-dot {
+		animation: typing-dot 1.2s ease-in-out infinite;
+	}
+	.fade-in {
+		animation: fade-in var(--duration-dropdown) var(--ease-ui-out) both;
+	}
+	.message-spring-start {
+		animation: message-enter-start 420ms var(--ease-spring) both;
+	}
+	.message-spring-end {
+		animation: message-enter-end 420ms var(--ease-spring) both;
+	}
+	.scrollbar-none {
+		scrollbar-width: none;
+	}
+	.scrollbar-none::-webkit-scrollbar {
+		display: none;
+	}
+	.menu-check path {
+		stroke-dasharray: 1;
+		stroke-dashoffset: 1;
+		transition: stroke-dashoffset 250ms linear;
+	}
+	.menu-check[data-on="true"] path, [data-checked]:not([data-checked="false"]) .menu-check path, [data-slot="select-item"][data-selected] .menu-check path {
+		stroke-dashoffset: 0;
+	}
+	.menu-dot {
+		scale: 0.7;
+		opacity: 0;
+		transition: scale 250ms var(--ease-out-quart), opacity 250ms var(--ease-out-quart);
+	}
+	.menu-dot[data-on="true"], [data-checked]:not([data-checked="false"]) .menu-dot {
+		scale: 1;
+		opacity: 1;
+	}
+	.scroll-area {
+		scrollbar-width: thin;
+		scrollbar-color: var(--border-strong) transparent;
+	}
+	.reasoning-shimmer {
+		background: linear-gradient( 90deg, var(--muted-foreground) 0%, var(--foreground) 50%, var(--muted-foreground) 100% ) 0 0 / 200% 100%;
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+		animation: reasoning-shimmer 2s linear infinite;
+	}
+	.pop-in {
+		animation: pop-in 200ms var(--ease-ui-out) both;
+	}
+	.text-transition-unit {
+		animation: text-transition-enter var(--tt-duration, 400ms) var(--tt-ease, var(--ease-ui-out)) var(--tt-delay, 0ms) both;
+	}
+	.reasoning-step-in {
+		animation: reasoning-step-in var(--duration-overlay) var(--ease-ui-out) both;
 	}
 }
 

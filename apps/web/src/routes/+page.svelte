@@ -7,15 +7,12 @@
     FaqSectionTitle,
   } from "#lib/components/blocks/faq-section/index.js";
   import Download from "#lib/site/Download.svelte";
-  import Gallery from "#lib/site/Gallery.svelte";
   import Hero from "#lib/site/Hero.svelte";
   import Logo from "#lib/site/Logo.svelte";
   import Models from "#lib/site/Models.svelte";
   import SiteHeader from "#lib/site/SiteHeader.svelte";
   import Privacy from "#lib/site/Privacy.svelte";
   import Reel from "#lib/site/Reel.svelte";
-  import Reveal from "#lib/site/Reveal.svelte";
-  import Tools from "#lib/site/Tools.svelte";
   import { faq, footerColumns } from "#lib/site/content.js";
 </script>
 
@@ -25,10 +22,7 @@
   <main>
     <Hero />
     <Reel />
-    <Reveal />
-    <Tools />
     <Privacy />
-    <Gallery />
     <Models />
 
     <section id="faq" class="mx-auto w-full max-w-4xl scroll-mt-24 px-6 py-24" aria-labelledby="faq-title">

@@ -17,8 +17,8 @@
   import {
     OrbitHero,
     OrbitHeroAction,
-    OrbitHeroBadge,
     OrbitHeroActions,
+    OrbitHeroBadge,
     OrbitHeroContent,
     OrbitHeroDescription,
     OrbitHeroSubheading,
@@ -29,16 +29,17 @@
   import { RollText } from "#lib/components/text/roll-text/index.js";
   import { RELEASES, REPO } from "./content.js";
 
-  // Decision (product): the hero is the airlock itself, a chamber with a ring of tools turning
-  // around a dial. The first set is what the studio does, with its promises on the inner ring;
-  // the second is the models you can run. The dial swaps them and the colour.
-  type Orb = { label: string; icon?: Component<{ size?: number }>; text?: string };
-
+  // Decision (product): the hero is the airlock itself, a chamber with the studio's tools turning
+  // around a dial. The outer ring is what you can do, the inner ring is what you can count on.
+  // The component's decorative side readouts ("Models", "Tone") say nothing about the product,
+  // so they are hidden below. Buttons are neutral and the brand colour is left to the glow and
+  // the two swept words.
+  type Orb = { label: string; icon: Component<{ size?: number }> };
   type Group = { label: string; outer: Orb[]; inner: Orb[] };
 
   const groups: Group[] = [
     {
-      label: "Tools",
+      label: "Studio",
       outer: [
         { label: "Chat", icon: ChatLineIcon },
         { label: "Dictation", icon: KeyboardIcon },
@@ -56,29 +57,11 @@
         { label: "Logged", icon: ClipboardIcon },
       ],
     },
-    {
-      label: "Models",
-      outer: [
-        { label: "LFM3", text: "LF" },
-        { label: "Qwen3.5", text: "Qw" },
-        { label: "Gemma", text: "Ge" },
-        { label: "Llama", text: "Ll" },
-        { label: "Mistral", text: "Mi" },
-        { label: "Phi", text: "Ph" },
-        { label: "Parakeet", text: "Pa" },
-        { label: "Kokoro", text: "Ko" },
-      ],
-      inner: [
-        { label: "Z-Image", text: "Zi" },
-        { label: "Any GGUF", text: "GG" },
-        { label: "Vision", text: "Vi" },
-        { label: "Your own", text: "+" },
-      ],
-    },
   ];
 
+  // Ink and blue, so the rings read as the product's own colours without filling the hero with orange.
   const tones = [
-    { label: "Orange", color: "var(--primary)" },
+    { label: "Ink", color: "var(--foreground)" },
     { label: "Blue", color: "var(--tertiary)" },
   ];
 </script>
@@ -89,17 +72,13 @@
   <OrbitHero {groups} {tones} size="screen" class="px-0! [&>div]:mb-0! [&>div]:rounded-none! [&>div]:pt-28!">
     {#snippet item(o)}
       <span class="flex size-8 items-center justify-center" title={o.label}>
-        {#if o.icon}
-          <o.icon size={22} />
-        {:else}
-          <span class="text-xs font-semibold">{o.text}</span>
-        {/if}
+        <o.icon size={22} />
       </span>
     {/snippet}
     <OrbitHeroContent>
       <OrbitHeroBadge class="p-0">
         <a href={RELEASES} class="flex h-full items-center gap-2 rounded-full py-0.5 pr-3 pl-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-          <span class="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">Pre-release</span>
+          <span class="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background">Pre-release</span>
           Windows build is out<span aria-hidden="true">→</span>
         </a>
       </OrbitHeroBadge>
@@ -120,10 +99,16 @@
         Chat, dictate, read aloud and make images with models you choose. Nothing leaves your machine unless you say so.
       </OrbitHeroDescription>
       <OrbitHeroActions>
-        <OrbitHeroAction href={RELEASES} class="rounded-full! px-6"><RollText text="Download for Windows" groupHover /></OrbitHeroAction>
+        <OrbitHeroAction variant="dark" href={RELEASES} class="rounded-full! px-6"><RollText text="Download for Windows" groupHover /></OrbitHeroAction>
         <OrbitHeroAction variant="secondary" href={REPO} class="rounded-full! px-6">View the code</OrbitHeroAction>
       </OrbitHeroActions>
     </OrbitHeroContent>
   </OrbitHero>
-  <p class="mt-3 text-center text-sm text-muted-foreground">Pre-release. Not code-signed yet, so Windows will ask you to confirm.</p>
 </div>
+
+<style>
+  /* The side readouts are decoration that names nothing in the product. */
+  #top :global(.\@6xl\:flex) {
+    display: none !important;
+  }
+</style>

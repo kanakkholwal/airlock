@@ -79,6 +79,7 @@
           <NavigationMenuList class="gap-1">
             {#each menus as menu (menu.label)}
               <NavigationMenuItem value={menu.label}>
+                {@const Mark = menu.items[0].icon}
                 <NavigationMenuTrigger class="rounded-full text-muted-foreground">{menu.label}</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <div class="grid w-[min(40rem,calc(100vw-23rem))] grid-cols-[13rem_1fr] gap-1">
@@ -86,18 +87,13 @@
                       href={menu.feature.href}
                       class="group/feature relative flex min-h-60 flex-col justify-between gap-6 overflow-hidden rounded-xl bg-muted p-5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <img
-                        src={menu.feature.image}
-                        alt={menu.feature.alt}
-                        width="512"
-                        height="512"
-                        loading="lazy"
-                        class="size-16 rotate-[-4deg] self-start rounded-lg border-4 border-card object-cover shadow-(--surface-shadow) transition-transform duration-300 ease-(--ease-ui-out) group-hover/feature:rotate-0"
-                      />
+                      <span class="grid size-12 place-items-center self-start rounded-xl bg-card text-foreground shadow-(--surface-shadow) transition-transform duration-300 ease-(--ease-ui-out) group-hover/feature:-rotate-3">
+                        <Mark size={24} />
+                      </span>
                       <span class="block">
                         <span class="block text-lg leading-tight font-medium">{menu.feature.title}</span>
                         <span class="mt-2 block text-sm text-pretty text-muted-foreground">{menu.feature.desc}</span>
-                        <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                        <span class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
                           {menu.feature.cta}<span aria-hidden="true">→</span>
                         </span>
                       </span>
@@ -106,7 +102,7 @@
                       {#each menu.items as item (item.href + item.label)}
                         <li>
                           <NavigationMenuLink href={item.href} class="flex-row items-start gap-3 rounded-xl p-3">
-                            <span class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-primary" aria-hidden="true">
+                            <span class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-foreground" aria-hidden="true">
                               <item.icon size={16} />
                             </span>
                             <span class="min-w-0">
@@ -130,7 +126,7 @@
 
       <div class="flex items-center justify-end gap-1">
         <span class="hidden sm:contents">{@render github()}</span>
-        <Button href={RELEASES} class="ml-1 hidden rounded-full! px-5 sm:inline-flex"><RollText text="Download" groupHover /></Button>
+        <Button variant="dark" href={RELEASES} class="ml-1 hidden rounded-full! px-5 sm:inline-flex"><RollText text="Download" groupHover /></Button>
         <Button variant="ghost" size="icon-sm" class="lg:hidden" aria-label="Open menu" aria-expanded={menuOpen} onclick={() => (menuOpen = true)}>
           <MenuDotsIcon size={20} />
         </Button>
@@ -170,7 +166,7 @@
       <a href="#faq" onclick={() => (menuOpen = false)} class="flex min-h-12 items-center px-3 text-base">FAQ</a>
     </nav>
     <div class="flex flex-col gap-2 p-4">
-      <Button href={RELEASES} onclick={() => (menuOpen = false)}>Download</Button>
+      <Button variant="dark" href={RELEASES} onclick={() => (menuOpen = false)}>Download</Button>
       <div class="flex items-center justify-between">{@render github()}</div>
     </div>
   </SheetContent>
