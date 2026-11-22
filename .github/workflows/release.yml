@@ -32,7 +32,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG }}
+
+      - name: Require a monorepo tag
+        run: |
+          if [ ! -d apps/desktop/src-tauri ]; then
+            echo "::error::$TAG was made before the monorepo move and has no apps/desktop. Push a new tag from main, for example v0.1.0-pre.2."
+            exit 1
+          fi
       - uses: pnpm/action-setup@v4
+        with:
+          # Same as packageManager in package.json. Named here too because a tag made before
+          # the monorepo has no packageManager field.
+          version: 11.1.2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -65,7 +76,18 @@ jobs:
         with:
           ref: ${{ env.TAG }}
 
+      - name: Require a monorepo tag
+        run: |
+          if [ ! -d apps/desktop/src-tauri ]; then
+            echo "::error::$TAG was made before the monorepo move and has no apps/desktop. Push a new tag from main, for example v0.1.0-pre.2."
+            exit 1
+          fi
+
       - uses: pnpm/action-setup@v4
+        with:
+          # Same as packageManager in package.json. Named here too because a tag made before
+          # the monorepo has no packageManager field.
+          version: 11.1.2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
