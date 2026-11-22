@@ -1,54 +1,53 @@
 <script lang="ts">
-  import chat from "@airlock/catalog/chat-models";
-
-  const releases = "https://github.com/kanakkholwal/airlock/releases";
-  const features = [
-    ["Chat", "Local models with image input. Replies stream as they are written."],
-    ["Dictation", "Hold a shortcut anywhere and your words are typed for you."],
-    ["Transcribe", "Turn recordings into text, with timestamps and SRT or VTT."],
-    ["Read aloud", "Natural voices that run on your computer."],
-    ["Images", "Describe a picture and make it on your own GPU."],
-    ["Private library", "Everything you make stays here, private by default."],
-  ];
+  import { Footer } from "#lib/components/blocks/footer/index.js";
+  import {
+    FaqSection,
+    FaqSectionHeader,
+    FaqSectionList,
+    FaqSectionTitle,
+  } from "#lib/components/blocks/faq-section/index.js";
+  import Download from "#lib/site/Download.svelte";
+  import Gallery from "#lib/site/Gallery.svelte";
+  import Hero from "#lib/site/Hero.svelte";
+  import Logo from "#lib/site/Logo.svelte";
+  import Models from "#lib/site/Models.svelte";
+  import SiteHeader from "#lib/site/SiteHeader.svelte";
+  import Privacy from "#lib/site/Privacy.svelte";
+  import Reel from "#lib/site/Reel.svelte";
+  import Reveal from "#lib/site/Reveal.svelte";
+  import Tools from "#lib/site/Tools.svelte";
+  import { faq, footerColumns } from "#lib/site/content.js";
 </script>
 
-<main class="mx-auto flex min-h-dvh max-w-3xl flex-col gap-16 px-6 py-24">
-  <header class="flex flex-col items-start gap-6">
-    <h1 class="text-5xl font-bold tracking-tight text-balance">Private AI on your own computer</h1>
-    <p class="max-w-xl text-lg text-pretty text-(--muted-foreground)">
-      Chat, dictate, transcribe, read aloud and make images with local models. Nothing leaves your machine unless you say so.
-    </p>
-    <a
-      href={releases}
-      class="rounded-xl bg-(--foreground) px-5 py-3 font-medium text-(--background) transition-opacity hover:opacity-90"
-    >
-      Download for Windows
-    </a>
-    <p class="text-sm text-(--muted-foreground)">Pre-release. Unsigned, so SmartScreen will ask you to confirm.</p>
-  </header>
+<div class="relative z-10">
+  <SiteHeader />
 
-  <section class="grid gap-4 sm:grid-cols-2" aria-label="What it does">
-    {#each features as [name, text] (name)}
-      <div class="rounded-2xl bg-(--muted) p-5">
-        <h2 class="font-medium">{name}</h2>
-        <p class="mt-1 text-(--muted-foreground) text-pretty">{text}</p>
-      </div>
-    {/each}
-  </section>
+  <main>
+    <Hero />
+    <Reel />
+    <Reveal />
+    <Tools />
+    <Privacy />
+    <Gallery />
+    <Models />
 
-  <section class="flex flex-col gap-3">
-    <h2 class="text-2xl font-bold">Models you can start with</h2>
-    <ul class="flex flex-col gap-2">
-      {#each chat.items as model (model.id)}
-        <li class="flex items-baseline justify-between gap-4 rounded-xl bg-(--muted) px-4 py-3">
-          <span class="font-medium">{model.name}</span>
-          <span class="text-sm text-(--muted-foreground)">{model.license}</span>
-        </li>
-      {/each}
-    </ul>
-  </section>
+    <section id="faq" class="mx-auto w-full max-w-4xl scroll-mt-24 px-6 py-24" aria-labelledby="faq-title">
+      <FaqSection items={faq} variant="accordion">
+        <FaqSectionHeader>
+          <FaqSectionTitle id="faq-title">Questions</FaqSectionTitle>
+        </FaqSectionHeader>
+        <FaqSectionList />
+      </FaqSection>
+    </section>
 
-  <footer class="mt-auto text-sm text-(--muted-foreground)">
-    <a class="underline underline-offset-2" href="https://github.com/kanakkholwal/airlock">GitHub</a>
-  </footer>
-</main>
+    <Download />
+  </main>
+
+  {#snippet brand()}
+    <span class="flex items-center gap-2 font-heading text-lg font-bold text-foreground"><Logo size={24} />Airlock Studio</span>
+  {/snippet}
+  {#snippet copyright()}
+    Airlock Studio by Nexonauts. Free and open source.
+  {/snippet}
+  <Footer layout="notched" topHref="#top" topLabel="Back to top" description="Private AI on your own computer." columns={footerColumns} {brand} {copyright} />
+</div>

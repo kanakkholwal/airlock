@@ -1,0 +1,91 @@
+/* Decision (product): Airlock Studio sits on the stock Baby UI tokens in app.css, so surfaces stay
+   soft and borderless. This file changes only what is the brand: the orange-red primary (the
+   airlock's signal lamp), a cool blue tertiary, Satoshi, and the base text. It loads after
+   app.css, which the Baby UI CLI manages and may rewrite. Persona: .local/WEBSITE-PERSONA.md.
+   Measured: white on primary 5.3:1; primary as text on white 5.3:1; tertiary as text on white 6.1:1. */
+@font-face {
+	font-family: "Satoshi";
+	src: url("/fonts/Satoshi-400.woff2") format("woff2");
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Satoshi";
+	src: url("/fonts/Satoshi-500.woff2") format("woff2");
+	font-weight: 500;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Satoshi";
+	src: url("/fonts/Satoshi-700.woff2") format("woff2");
+	font-weight: 700;
+	font-display: swap;
+}
+
+:root {
+	color-scheme: light;
+	--primary: oklch(55% 0.18 38);
+	--primary-foreground: oklch(99% 0 0);
+	--ring: oklch(55% 0.18 38);
+	--tertiary: oklch(50% 0.15 255);
+	--tertiary-foreground: oklch(99% 0 0);
+	--font-heading: "Satoshi", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+	html {
+		scroll-behavior: smooth;
+		-webkit-text-size-adjust: 100%;
+	}
+
+	body {
+		margin: 0;
+		background: var(--background);
+		color: var(--foreground);
+		font-family: var(--font-body);
+		font-size: 16px;
+		line-height: 1.6;
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-heading);
+		font-weight: 500;
+		letter-spacing: -0.015em;
+		line-height: 1.08;
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+}
+
+::selection {
+	background: oklch(55% 0.18 38 / 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+	:root {
+		--duration-press: 0ms;
+		--duration-drawer: 160ms;
+		--stagger-step: 0ms;
+		--press-scale: 1;
+		--press-scale-sm: 1;
+		--press-scale-lg: 1;
+		--press-scale-icon: 1;
+		--press-scale-row: 1;
+		--hover-scale: 1;
+		--enter-scale: 1;
+		--enter-lift: 0px;
+		--popover-enter-scale: 1;
+		--popover-exit-scale: 1;
+		--modal-enter-scale: 1;
+	}
+}
