@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Marker } from "#lib/components/text/marker/index.js";
+  import Buddies from "./Buddies.svelte";
   import TornEdge from "./TornEdge.svelte";
   import { ledger } from "./content.js";
 
@@ -8,14 +9,12 @@
 </script>
 
 <section id="privacy" class="relative scroll-mt-24" aria-labelledby="privacy-title">
+  <Buddies section="privacy" spots={["absolute top-28 right-[3%] hidden w-20 lg:block", "absolute bottom-24 left-[3%] hidden w-24 lg:block"]} />
   <TornEdge fill="var(--card)" />
   <div class="bg-card">
     <div class="mx-auto grid w-full max-w-6xl gap-12 px-6 py-20 lg:grid-cols-[0.8fr_1.2fr]">
       <div>
-        <h2 id="privacy-title" class="text-4xl sm:text-5xl">What can <Marker variant="circle" tone="primary">leave</Marker> your computer</h2>
-        <p class="mt-4 max-w-md text-lg text-muted-foreground">
-          This is the whole list. Everything you make starts private, and only what you mark shareable can ever reach an online model.
-        </p>
+        <h2 id="privacy-title" class="text-4xl sm:text-5xl">Private isn't a promise. It's a <Marker variant="circle" tone="primary">list</Marker></h2>
       </div>
 
       <dl class="flex flex-col">

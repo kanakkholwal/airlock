@@ -89,3 +89,107 @@
 		--modal-enter-scale: 1;
 	}
 }
+
+/* Playful pieces: the mascots' colours and every bit of motion they use. */
+:root {
+	--mascot-blue: oklch(88% 0.06 255);
+	--mascot-blue-deep: oklch(74% 0.08 255);
+	--mascot-orange: oklch(90% 0.08 38);
+	--mascot-orange-deep: oklch(78% 0.11 38);
+	--mascot-sand: oklch(93% 0.012 265);
+	--mascot-sand-deep: oklch(82% 0.02 265);
+}
+
+.mascot {
+	display: block;
+	overflow: visible;
+}
+.mascot-eyes {
+	transition: transform 120ms var(--ease-ui-out);
+}
+.mascot-blink {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: mascot-blink 5.5s infinite;
+}
+.mascot-bob {
+	animation: mascot-bob 4s ease-in-out infinite;
+}
+.buddy {
+	transform: rotate(var(--tilt, 0deg));
+	animation: buddy-float 5.2s ease-in-out infinite;
+}
+.buddy:hover {
+	animation-play-state: paused;
+}
+.buddy:hover .mascot {
+	animation: buddy-squish 520ms var(--ease-ui-out);
+}
+/* Characters on a hairline start below it and rise once when the line comes into view. */
+.peek .peek-item {
+	transform: translateY(70%);
+	transition: transform 700ms var(--ease-ui-out);
+}
+.peek[data-in] .peek-item {
+	transform: translateY(26%);
+}
+.peek[data-in] .peek-item:hover {
+	transform: translateY(8%);
+}
+
+@keyframes mascot-blink {
+	0%, 94%, 100% { transform: scaleY(1); }
+	97% { transform: scaleY(0.12); }
+}
+@keyframes mascot-bob {
+	0%, 100% { translate: 0 0; rotate: -2deg; }
+	50% { translate: 0 -4px; rotate: 2deg; }
+}
+@keyframes buddy-float {
+	0%, 100% { transform: translate(0, 0) rotate(var(--tilt, 0deg)); }
+	30% { transform: translate(calc(var(--amp, 12px) * 0.5), calc(var(--amp, 12px) * -0.8)) rotate(calc(var(--tilt, 0deg) + 3deg)); }
+	60% { transform: translate(calc(var(--amp, 12px) * -0.4), calc(var(--amp, 12px) * -1)) rotate(calc(var(--tilt, 0deg) - 2deg)); }
+}
+@keyframes buddy-squish {
+	0% { transform: scale(1, 1); }
+	28% { transform: scale(1.14, 0.88); }
+	58% { transform: scale(0.94, 1.1); }
+	100% { transform: scale(1, 1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.mascot-blink, .mascot-bob, .buddy { animation: none; }
+	.peek .peek-item, .peek[data-in] .peek-item { transition: none; transform: translateY(26%); }
+}
+
+/* CTA banner motion, from the Baby UI registry (the CLI could not merge it into app.css). */
+@layer baby-ui {
+	.cta-banner-drift {
+		opacity: 0.25;
+		animation: cta-banner-drift 6s linear infinite;
+	}
+	.cta-banner-run {
+		animation: cta-banner-run 160s linear infinite;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.cta-banner-drift, .cta-banner-run {
+			animation: none;
+		}
+	}
+}
+@keyframes cta-banner-drift {
+	0%,
+	100% {
+		opacity: 0.1;
+		transform: translate(0, 0) rotate(0deg);
+	}
+	50% {
+		opacity: 0.4;
+		transform: translate(10px, -15px) rotate(10deg);
+	}
+}
+@keyframes cta-banner-run {
+	to {
+		transform: translateX(-50%);
+	}
+}

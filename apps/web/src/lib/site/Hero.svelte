@@ -26,7 +26,6 @@
   } from "#lib/components/blocks/orbit-hero/index.js";
   import { DiaText } from "#lib/components/text/dia-text/index.js";
   import { RevealText } from "#lib/components/text/reveal-text/index.js";
-  import { RollText } from "#lib/components/text/roll-text/index.js";
   import { RELEASES, REPO } from "./content.js";
 
   // Decision (product): the hero is the airlock itself, a chamber with the studio's tools turning
@@ -69,7 +68,7 @@
 <div id="top">
   <!-- Edge to edge: the panel keeps its tint and glow but drops the inset and rounded corners, and
        leaves room at the top for the header that sits on it. -->
-  <OrbitHero {groups} {tones} size="screen" class="px-0! [&>div]:mb-0! [&>div]:rounded-none! [&>div]:pt-28!">
+  <OrbitHero {groups} {tones} size="screen" class="px-0! [&>div]:mb-0! [&>div]:rounded-none! [&>div]:pt-28! [&>div]:mask-[linear-gradient(to_bottom,#000_78%,transparent)]">
     {#snippet item(o)}
       <span class="flex size-8 items-center justify-center" title={o.label}>
         <o.icon size={22} />
@@ -79,14 +78,14 @@
       <OrbitHeroBadge class="p-0">
         <a href={RELEASES} class="flex h-full items-center gap-2 rounded-full py-0.5 pr-3 pl-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <span class="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-medium text-background">Pre-release</span>
-          Windows build is out<span aria-hidden="true">→</span>
+          Free for Windows<span aria-hidden="true">→</span>
         </a>
       </OrbitHeroBadge>
       <OrbitHeroTitle class="font-heading font-medium!">
-        <RevealText text="Your AI studio" split="word" staggerMs={110} />
+        <RevealText text="AI without the upload" split="word" staggerMs={90} />
         <OrbitHeroSubheading>
           <DiaText
-            text="on your own computer"
+            text="Private. Offline. Free."
             colors={["var(--tertiary)", "var(--primary)", "var(--tertiary)"]}
             textColor="var(--muted-foreground)"
             delayMs={500}
@@ -95,11 +94,11 @@
           />
         </OrbitHeroSubheading>
       </OrbitHeroTitle>
-      <OrbitHeroDescription class="line-clamp-2 max-w-[38rem]!">
-        Chat, dictate, read aloud and make images with models you choose. Nothing leaves your machine unless you say so.
+      <OrbitHeroDescription class="line-clamp-2 max-w-[34rem]!">
+        Chat, dictate, transcribe and make images on your own laptop. No account.
       </OrbitHeroDescription>
       <OrbitHeroActions>
-        <OrbitHeroAction variant="dark" href={RELEASES} class="rounded-full! px-6"><RollText text="Download for Windows" groupHover /></OrbitHeroAction>
+        <OrbitHeroAction variant="dark" href={RELEASES} class="rounded-full! px-6">Download for Windows</OrbitHeroAction>
         <OrbitHeroAction variant="secondary" href={REPO} class="rounded-full! px-6">View the code</OrbitHeroAction>
       </OrbitHeroActions>
     </OrbitHeroContent>

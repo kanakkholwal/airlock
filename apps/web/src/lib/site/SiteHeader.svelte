@@ -14,9 +14,8 @@
     navigationMenuTriggerStyle,
   } from "#lib/components/ui/navigation-menu/index.js";
   import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "#lib/components/ui/sheet/index.js";
-  import { RollText } from "#lib/components/text/roll-text/index.js";
   import Logo from "./Logo.svelte";
-  import { RELEASES, REPO, menus } from "./content.js";
+  import { RELEASES, REPO, menus, navLinks } from "./content.js";
 
   // Adapted from the GlyphTeX site header: a pill inside a pill, a framed menu with one feature
   // tile and a list of links, and a sheet on small screens. Here the bar is clear at the top of
@@ -43,12 +42,12 @@
 </script>
 
 {#snippet github()}
-  <Button href={REPO} target="_blank" rel="noopener noreferrer" variant="ghost" size="sm" class="gap-1.5 text-muted-foreground">
+  <Button href={REPO} target="_blank" rel="noopener noreferrer" variant="ghost" class="gap-1.5 rounded-full! text-muted-foreground">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
       <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.74.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.25 5.68.41.35.78 1.05.78 2.12v3.14c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
     </svg>
     <span class="sr-only">Airlock Studio on GitHub</span>
-    {#if stars !== null}
+    {#if stars !== null && stars > 0}
       <span class="tabular-nums">{format.format(stars)}<span class="sr-only"> stars</span></span>
     {/if}
   </Button>
@@ -117,16 +116,18 @@
                 </NavigationMenuContent>
               </NavigationMenuItem>
             {/each}
-            <NavigationMenuItem>
-              <NavigationMenuLink href="#faq" class={cn(navigationMenuTriggerStyle(), "rounded-full text-muted-foreground no-underline")}>FAQ</NavigationMenuLink>
-            </NavigationMenuItem>
+            {#each navLinks as link (link.href)}
+              <NavigationMenuItem>
+                <NavigationMenuLink href={link.href} class={cn(navigationMenuTriggerStyle(), "rounded-full text-muted-foreground no-underline")}>{link.label}</NavigationMenuLink>
+              </NavigationMenuItem>
+            {/each}
           </NavigationMenuList>
         </NavigationMenu>
       </div>
 
       <div class="flex items-center justify-end gap-1">
         <span class="hidden sm:contents">{@render github()}</span>
-        <Button variant="dark" href={RELEASES} class="ml-1 hidden rounded-full! px-5 sm:inline-flex"><RollText text="Download" groupHover /></Button>
+        <Button variant="dark" href={RELEASES} class="hidden rounded-full! px-5 sm:inline-flex">Download</Button>
         <Button variant="ghost" size="icon-sm" class="lg:hidden" aria-label="Open menu" aria-expanded={menuOpen} onclick={() => (menuOpen = true)}>
           <MenuDotsIcon size={20} />
         </Button>
@@ -163,7 +164,9 @@
           </CollapsibleContent>
         </Collapsible>
       {/each}
-      <a href="#faq" onclick={() => (menuOpen = false)} class="flex min-h-12 items-center px-3 text-base">FAQ</a>
+      {#each navLinks as link (link.href)}
+        <a href={link.href} onclick={() => (menuOpen = false)} class="flex min-h-12 items-center px-3 text-base">{link.label}</a>
+      {/each}
     </nav>
     <div class="flex flex-col gap-2 p-4">
       <Button variant="dark" href={RELEASES} onclick={() => (menuOpen = false)}>Download</Button>

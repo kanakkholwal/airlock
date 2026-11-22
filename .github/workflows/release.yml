@@ -34,6 +34,7 @@ jobs:
           ref: ${{ env.TAG }}
 
       - name: Require a monorepo tag
+        shell: bash
         run: |
           if [ ! -d apps/desktop/src-tauri ]; then
             echo "::error::$TAG was made before the monorepo move and has no apps/desktop. Push a new tag from main, for example v0.1.0-pre.2."
@@ -77,6 +78,7 @@ jobs:
           ref: ${{ env.TAG }}
 
       - name: Require a monorepo tag
+        shell: bash
         run: |
           if [ ! -d apps/desktop/src-tauri ]; then
             echo "::error::$TAG was made before the monorepo move and has no apps/desktop. Push a new tag from main, for example v0.1.0-pre.2."

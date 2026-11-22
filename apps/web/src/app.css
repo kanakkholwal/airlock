@@ -672,6 +672,45 @@
 			opacity: 0;
 		}
 	}
+	@keyframes progress-gloss-move {
+		from {
+			translate: -44% 0;
+		}
+		to {
+			translate: 238% 0;
+		}
+	}
+	@keyframes progress-gloss-fade {
+		0%,
+	100% {
+			opacity: 0;
+		}
+		14%,
+	84% {
+			opacity: 0.92;
+		}
+	}
+	@keyframes progress-gloss-scale {
+		0% {
+			scale: 0.94 1;
+		}
+		50% {
+			scale: 1 1;
+		}
+		100% {
+			scale: 0.96 1;
+		}
+	}
+	@keyframes stream-caret {
+		50% {
+			opacity: 0;
+		}
+	}
+	@keyframes image-generation-mark {
+		to {
+			rotate: 360deg;
+		}
+	}
 }
 
 @layer baby-ui {
@@ -762,6 +801,18 @@
 		}
 		.reasoning-step-in {
 			animation-name: fade-in;
+		}
+		.slider-glide, .progress-fill, .progress-ring {
+			transition: none;
+		}
+		.progress-gloss, .progress-spin {
+			animation: none;
+		}
+		.pixel-cell, .pop-in {
+			animation: none;
+		}
+		.image-generation-mark {
+			animation: none;
 		}
 	}
 	.spinner {
@@ -1017,6 +1068,35 @@
 	}
 	.reasoning-step-in {
 		animation: reasoning-step-in var(--duration-overlay) var(--ease-ui-out) both;
+	}
+	.progress-fill {
+		transform-origin: left center;
+		transition: transform var(--duration-spring-snappy) var(--ease-spring-snappy);
+	}
+	.progress-ring {
+		transition: stroke-dasharray var(--duration-spring-snappy) var(--ease-spring-snappy), transform var(--duration-spring-snappy) var(--ease-spring-snappy);
+	}
+	.progress-gloss {
+		background-image: linear-gradient( 90deg, transparent 0%, color-mix(in oklab, currentColor 40%, transparent) 16%, color-mix(in oklab, currentColor 80%, transparent) 50%, color-mix(in oklab, currentColor 40%, transparent) 84%, transparent 100% );
+		animation: progress-gloss-move 1.55s cubic-bezier(0.24, 0.04, 0.2, 1) infinite, progress-gloss-fade 1.55s cubic-bezier(0.24, 0.04, 0.2, 1) infinite, progress-gloss-scale 1.55s cubic-bezier(0.24, 0.04, 0.2, 1) infinite;
+	}
+	.progress-spin {
+		animation: spinner 1.15s linear infinite;
+	}
+	.slider-glide {
+		--slider-glide: var(--duration-spring-snappy);
+		transition-property: inset-inline-start, left, right, width, scale, box-shadow;
+		transition-duration: var(--slider-glide), var(--slider-glide), var(--slider-glide), var(--slider-glide), var(--duration-press), var(--duration-press);
+		transition-timing-function: var(--ease-spring-snappy), var(--ease-spring-snappy), var(--ease-spring-snappy), var(--ease-spring-snappy), var(--ease-ui-out), var(--ease-ui-out);
+	}
+	.slider-glide[data-orientation="vertical"] {
+		transition-property: inset-block-end, bottom, top, height, scale, box-shadow;
+	}
+	.stream-caret {
+		animation: stream-caret 1s steps(2) infinite;
+	}
+	.image-generation-mark {
+		animation: image-generation-mark 2.4s var(--ease-ui-in-out) infinite;
 	}
 }
 
