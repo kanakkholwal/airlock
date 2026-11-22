@@ -4,14 +4,8 @@
 	"compatibility_date": "2025-09-01",
 	// SvelteKit's server bundle reaches for node: builtins even when the routes do not.
 	"compatibility_flags": ["nodejs_compat"],
-	// `main` + `assets` is what tells adapter-cloudflare to build for Workers, not Pages.
-	"main": ".svelte-kit/cloudflare/_worker.js",
-	// No not_found_handling: SvelteKit renders every non-asset route, so an asset miss
-	// has to reach the Worker. "404-page" makes the asset router answer instead.
-	"assets": {
-		"binding": "ASSETS",
-		"directory": ".svelte-kit/cloudflare"
-	},
+	// No `main` or `assets` here: adapter-cloudflare sets the Worker entry and the static assets
+	// itself, and refuses to build when they are present.
 	"observability": { "enabled": true },
 	"routes": [
 		{
