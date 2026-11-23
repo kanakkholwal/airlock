@@ -86,6 +86,10 @@ fn flatten_single_dir(dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
+pub fn is_installed(engines: &Path, backend: Backend) -> bool {
+    install_dir(engines, backend).join(exe_name()).exists()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn llm_engines(app: AppHandle) -> Result<Vec<EngineStatus>, String> {

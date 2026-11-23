@@ -346,6 +346,61 @@ pub fn parse_header(bytes: &[u8], wanted_keys: &[&str]) -> Result<GgufMetadata, 
     Ok(GgufMetadata { kv })
 }
 
+/// Read just enough of `path` to parse its GGUF metadata header, without ever
+/// loading the (potentially multi-GB) tensor data. Grows the prefix
+/// geometrically if a header is unusually large.
+pub fn read_header(
+    path: &std::path::Path,
+    wanted_keys: &[&str],
+) -> Result<GgufMetadata, GgufError> {
+    // The KV metadata block precedes the tensor-info table. Shipping ASR models
+    // place all of it well within the first 64 KiB, so that's the common-case
+    // read. Older / community GGUFs may carry it deeper, so the loop grows the
+    // prefix geometrically (jumping straight to the size the parser reports it
+    // needs) up to a hard cap.
+    const INITIAL_PREFIX: usize = 64 << 10; // 64 KiB
+    const MAX_PREFIX: usize = 16 << 20; // 16 MiB
+
+    /// Read up to `size` bytes from the start of `path`, tolerating short reads.
+    fn read_prefix(path: &std::path::Path, size: usize) -> std::io::Result<Vec<u8>> {
+        use std::io::Read;
+        let mut file = std::fs::File::open(path)?;
+        let mut buf = vec![0u8; size];
+        let mut filled = 0;
+        while filled < buf.len() {
+            match file.read(&mut buf[filled..]) {
+                Ok(0) => break,
+                Ok(n) => filled += n,
+                Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e),
+            }
+        }
+        buf.truncate(filled);
+        Ok(buf)
+    }
+
+    let mut size = INITIAL_PREFIX;
+    loop {
+        let buf = read_prefix(path, size).map_err(|_| GgufError::Malformed("cannot read file"))?;
+        let read_len = buf.len();
+        match parse_header(&buf, wanted_keys) {
+            Ok(meta) => return Ok(meta),
+            Err(GgufError::Truncated { needed }) => {
+                if read_len < size {
+                    // Hit EOF and still truncated → file shorter than its header.
+                    return Err(GgufError::Malformed("file shorter than its header"));
+                }
+                let next = needed.max(size.saturating_mul(2)).min(MAX_PREFIX);
+                if next <= size {
+                    return Err(GgufError::Truncated { needed });
+                }
+                size = next;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

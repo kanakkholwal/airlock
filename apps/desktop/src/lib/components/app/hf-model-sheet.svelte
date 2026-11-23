@@ -25,7 +25,7 @@
   // download. It preselects the file that fits this machine best. Closing is ignored mid-download.
   const repo = $derived(explore.selected);
   const m = $derived(repo?.model);
-  const free = $derived(explore.memory?.free_bytes ?? 0);
+  const free = $derived(explore.memory?.usable_bytes ?? 0);
   const models = $derived((repo?.files ?? []).filter((f) => !f.projector));
   const projectors = $derived((repo?.files ?? []).filter((f) => f.projector));
 

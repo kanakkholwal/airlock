@@ -134,16 +134,36 @@ pub async fn llm_start_model(
         super::models::resolve(&models, &id).ok_or("Model is not downloaded yet")?;
     super::paths::remember_model(&app, &id);
     engine.configure(super::paths::residency(&app));
+    let tuning = super::paths::tuning(&app);
+    // Auto context: the model's own window, shrunk to what memory allows.
+    let context = tuning.context.unwrap_or_else(|| {
+        super::models::profile(&models, &id)
+            .map(|(weights, a)| {
+                a.auto_context(weights, super::models::usable_memory(&app), &tuning)
+            })
+            .unwrap_or(context)
+    });
+    let engines = engines_dir(&app)?;
+    // An explicit request wins; Auto follows the saved choice, which falls back to Auto if
+    // that engine was removed since.
+    let backend = match backend {
+        Backend::Auto => match super::paths::engine_pref(&app) {
+            pref if pref != Backend::Auto && super::engines::is_installed(&engines, pref) => pref,
+            _ => Backend::Auto,
+        },
+        explicit => explicit,
+    };
     engine
         .inner()
         .start(
             app.clone(),
-            engines_dir(&app)?,
+            engines,
             id,
             path,
             projector,
             context,
             backend,
+            tuning,
         )
         .await
 }

@@ -1,3 +1,4 @@
+use super::arch::ModelArch;
 use crate::data::{leak_slice, leak_str, load, CHAT_MODELS};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -22,8 +23,11 @@ pub struct CatalogEntry {
     pub context: u32,
     /// Largest context the model supports, shown in the picker.
     pub max_context: Option<u32>,
-    /// Rough total memory (RAM plus VRAM) for comfortable use, in GB.
-    pub min_ram_gb: Option<u32>,
+    /// Chat-cache size per token at 16-bit, counting only full-attention layers
+    /// (2 x kv_heads x head_dim x 2 bytes each), from the model's config.json.
+    pub kv_kib_per_token: u32,
+    /// Fixed cache for sliding-window layers (window x layer size), in MiB.
+    pub kv_fixed_mib: u32,
     pub license: &'static str,
     pub license_url: &'static str,
     pub recommended: bool,
@@ -53,8 +57,10 @@ struct RawEntry {
     context: u32,
     #[serde(default)]
     max_context: Option<u32>,
+    #[serde(default = "default_kv_kib")]
+    kv_kib_per_token: u32,
     #[serde(default)]
-    min_ram_gb: Option<u32>,
+    kv_fixed_mib: u32,
     license: String,
     license_url: String,
     #[serde(default)]
@@ -65,6 +71,11 @@ struct RawEntry {
     speed: Option<u8>,
     #[serde(default)]
     intelligence: Option<u8>,
+}
+
+/// For catalog entries that omit it: the old flat guess, safe for small models.
+fn default_kv_kib() -> u32 {
+    128
 }
 
 fn file(raw: RawFile) -> CatalogFile {
@@ -91,7 +102,8 @@ pub fn all() -> &'static [CatalogEntry] {
                 projector: e.projector.map(file),
                 context: e.context,
                 max_context: e.max_context,
-                min_ram_gb: e.min_ram_gb,
+                kv_kib_per_token: e.kv_kib_per_token,
+                kv_fixed_mib: e.kv_fixed_mib,
                 license: leak_str(e.license),
                 license_url: leak_str(e.license_url),
                 recommended: e.recommended,
@@ -117,13 +129,14 @@ impl CatalogEntry {
     }
 }
 
-/// Rough resident memory: weights + projector + KV cache + a fixed work reserve.
-/// Provenance: Ensu `llm/memory.rs` memory_budget(); the 256 MiB reserve is its calibration.
-/// KV cache is estimated at 128 KiB per context token, a conservative figure for ~2B models.
-pub fn estimated_memory_bytes(entry: &CatalogEntry) -> u64 {
-    const WORK_RESERVE: u64 = 256 * 1024 * 1024;
-    const KV_PER_TOKEN: u64 = 128 * 1024;
-    entry.total_bytes() + entry.context as u64 * KV_PER_TOKEN + WORK_RESERVE
+impl CatalogEntry {
+    pub fn arch(&self) -> ModelArch {
+        ModelArch {
+            max_context: self.max_context.unwrap_or(self.context),
+            kv_kib_per_token: self.kv_kib_per_token,
+            kv_fixed_mib: self.kv_fixed_mib,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -146,6 +159,12 @@ mod tests {
     #[test]
     fn memory_estimate_exceeds_weights() {
         let e = find("lfm3-1.7b-q4").unwrap();
-        assert!(estimated_memory_bytes(e) > e.total_bytes());
+        let t = super::super::engine::Tuning::default();
+        let a = e.arch();
+        assert!(a.memory_bytes(e.total_bytes(), 4096, &t) > e.total_bytes());
+        let long = a.memory_bytes(e.total_bytes(), 131072, &t);
+        assert!(long > a.memory_bytes(e.total_bytes(), 4096, &t));
+        let q8 = super::super::engine::Tuning { kv_q8: true, ..t };
+        assert!(a.memory_bytes(e.total_bytes(), 131072, &q8) < long);
     }
 }

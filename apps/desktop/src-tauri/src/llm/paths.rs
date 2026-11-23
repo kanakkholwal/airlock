@@ -17,6 +17,11 @@ struct Stored {
     idle_minutes: Option<u32>,
     #[serde(default)]
     unload_when_hidden: Option<bool>,
+    /// Which engine build loads models; None means automatic.
+    #[serde(default)]
+    engine: Option<super::engine::Backend>,
+    #[serde(default)]
+    tuning: Option<super::engine::Tuning>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -47,6 +52,12 @@ fn load(app: &AppHandle) -> Stored {
         .unwrap_or_default()
 }
 
+fn update(app: &AppHandle, change: impl FnOnce(&mut Stored)) -> Result<(), String> {
+    let mut stored = load(app);
+    change(&mut stored);
+    save(app, &stored)
+}
+
 fn save(app: &AppHandle, stored: &Stored) -> Result<(), String> {
     let json = serde_json::to_string_pretty(stored).map_err(|e| e.to_string())?;
     std::fs::write(file(app)?, json).map_err(|e| e.to_string())
@@ -64,10 +75,44 @@ pub fn residency(app: &AppHandle) -> super::engine::Residency {
 }
 
 pub fn save_residency(app: &AppHandle, r: super::engine::Residency) -> Result<(), String> {
-    let mut stored = load(app);
-    stored.idle_minutes = Some(r.idle_minutes);
-    stored.unload_when_hidden = Some(r.unload_when_hidden);
-    save(app, &stored)
+    update(app, |s| {
+        s.idle_minutes = Some(r.idle_minutes);
+        s.unload_when_hidden = Some(r.unload_when_hidden);
+    })
+}
+
+pub fn tuning(app: &AppHandle) -> super::engine::Tuning {
+    load(app).tuning.unwrap_or_default().sanitized()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn llm_get_tuning(app: AppHandle) -> super::engine::Tuning {
+    tuning(&app)
+}
+
+/// Applies from the next model load.
+#[tauri::command]
+#[specta::specta]
+pub fn llm_set_tuning(app: AppHandle, tuning: super::engine::Tuning) -> Result<(), String> {
+    update(&app, |s| s.tuning = Some(tuning.sanitized()))
+}
+
+pub fn engine_pref(app: &AppHandle) -> super::engine::Backend {
+    load(app).engine.unwrap_or(super::engine::Backend::Auto)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn llm_get_engine(app: AppHandle) -> super::engine::Backend {
+    engine_pref(&app)
+}
+
+/// Applies from the next model load; a loaded model keeps running on its current engine.
+#[tauri::command]
+#[specta::specta]
+pub fn llm_set_engine(app: AppHandle, backend: super::engine::Backend) -> Result<(), String> {
+    update(&app, |s| s.engine = Some(backend))
 }
 
 pub fn last_model(app: &AppHandle) -> Option<String> {

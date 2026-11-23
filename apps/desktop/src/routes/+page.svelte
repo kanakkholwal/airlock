@@ -56,7 +56,7 @@
     {#if !llm.needsSetup && !llm.setup}<PromptSuggestions />{/if}
   </main>
 {:else}
-  <main class="mx-auto flex h-full w-full max-w-5xl flex-col gap-4 px-6 pb-6">
+  <main class="mx-auto flex h-full w-full max-w-6xl flex-col gap-4 px-6 pb-6">
     <!-- Decision (product): the transcript is wider than the box you type in. Bubbles are sized
          against this container, not the window, so they stay readable at any width. -->
     <div class="@container min-h-0 flex-1">
@@ -97,7 +97,7 @@
               </Message>
             {:else}
               <Message align="start" aria-label="Assistant" animated={m.fresh === true}>
-                <MessageContent class="w-full max-w-[80cqw]">
+                <MessageContent class="w-full max-w-[95cqw]">
                   {#if hasTools(m)}
                     <!-- A reply that used tools is shown step by step, in the order it happened. -->
                     <div class="flex flex-col gap-2">

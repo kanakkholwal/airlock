@@ -109,7 +109,8 @@ class ChatSession {
   needModel: (() => void) | null = null;
   private nextId = 1;
   private transport: ChatTransport | null = null;
-  private abort: AbortController | null = null;
+  // Reactive: the composer reads `busy`, so clearing this must re-render it.
+  private abort = $state.raw<AbortController | null>(null);
   private modelId: string | null = null;
   // Serialises writes so messages land in order.
   private writes: Promise<unknown> = Promise.resolve();

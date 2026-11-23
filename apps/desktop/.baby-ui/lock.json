@@ -895,6 +895,29 @@
 				"https://baby-ui.pages.dev/svelte/r/tokens.json"
 			]
 		},
+		"https://baby-ui.pages.dev/svelte/r/number-input.json": {
+			"name": "number-input",
+			"type": "registry:ui",
+			"framework": "svelte",
+			"installedAt": "2026-11-23T13:34:40.510Z",
+			"itemHash": "50bc93b61ec4006579572f5cb12b10f67d9c70024a1fc9e92d91d71b886b125f",
+			"files": {
+				"src/lib/cn.ts": "0fca478853f3fc4310e40ebff727a53da7ec677938f4e3e0d5ecaa62e936a199",
+				"src/lib/components/ui/number-input/index.ts": "73481bb355f4f85ab9b1cc3fa2a0dfae4a5361c9149cbf7cc654a099b6259ef4",
+				"src/lib/components/ui/number-input/limit.ts": "23a2c37c4ac4d6f8b6a6431ddd5310f05b07d52a4d6fc177fcb6ed31ed5c8c70",
+				"src/lib/components/ui/number-input/number-input.svelte": "e24fbf22f0c2627be49f4887f548dc5fe1f7d15c1763dd8ad73fc25735fe7ca2",
+				"src/lib/components/ui/number-input/variants.ts": "19f6e3ca78ca205360d3e819ad0322ce4fe3a0b0bca6f662b7d63e1353a5f64b",
+				"src/lib/control.ts": "c549ced4d9eb20af1d1b0d73d8100916e435948150485b0a944e358ffaf7921b"
+			},
+			"dependencies": [
+				"clsx",
+				"tailwind-merge",
+				"tailwind-variants"
+			],
+			"registryDependencies": [
+				"https://baby-ui.pages.dev/svelte/r/tokens.json"
+			]
+		},
 		"https://baby-ui.pages.dev/svelte/r/popover.json": {
 			"name": "popover",
 			"type": "registry:ui",

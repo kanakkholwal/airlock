@@ -22,6 +22,101 @@ pub enum Backend {
     Cpu,
 }
 
+/// Launch settings shared by every llama.cpp engine; `None` means "let llama.cpp decide".
+/// Decision (product): only knobs that change speed or memory in a way a user can reason about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(default)]
+pub struct Tuning {
+    /// Layers kept on the GPU. `None` fits as many as free memory allows (recommended).
+    pub gpu_layers: Option<u32>,
+    pub flash_attn: bool,
+    /// 8-bit chat cache: about half the memory. Needs flash attention.
+    pub kv_q8: bool,
+    /// Overrides the model's default chat length (tokens).
+    pub context: Option<u32>,
+    pub threads: Option<u32>,
+    /// Prompt batch size; larger reads long prompts faster but needs more memory.
+    pub batch: Option<u32>,
+    /// Mixture-of-experts only: layers whose experts stay in RAM.
+    pub experts_on_cpu: Option<u32>,
+    /// Mixture-of-experts only: GPU memory (MiB) for the most-used experts held in RAM.
+    pub expert_cache_mib: Option<u32>,
+}
+
+impl Default for Tuning {
+    fn default() -> Self {
+        Self {
+            gpu_layers: None,
+            flash_attn: true,
+            kv_q8: false,
+            context: None,
+            threads: None,
+            batch: None,
+            experts_on_cpu: None,
+            expert_cache_mib: None,
+        }
+    }
+}
+
+/// Memory llama.cpp keeps free per GPU when fitting layers.
+const FIT_MARGIN_MIB: u32 = 512;
+
+impl Tuning {
+    /// Clamps hand-typed values to ranges llama-server accepts.
+    pub fn sanitized(mut self) -> Self {
+        let clamp = |v: Option<u32>, lo: u32, hi: u32| v.map(|n| n.clamp(lo, hi));
+        self.gpu_layers = clamp(self.gpu_layers, 0, 999);
+        self.context = clamp(self.context, 512, 1_048_576);
+        self.threads = clamp(self.threads, 1, 256);
+        self.batch = clamp(self.batch, 32, 8192);
+        self.experts_on_cpu = clamp(self.experts_on_cpu, 0, 999);
+        self.expert_cache_mib = clamp(self.expert_cache_mib, 0, 1_048_576);
+        self
+    }
+
+    /// Extra llama-server arguments (the context is applied by the caller).
+    pub fn args(self, backend: Backend) -> Vec<String> {
+        let mut a: Vec<String> = Vec::new();
+        let mut push = |flag: &str, value: Option<String>| {
+            a.push(flag.into());
+            a.extend(value);
+        };
+        if let Some(t) = self.threads {
+            push("-t", Some(t.to_string()));
+        }
+        if let Some(b) = self.batch {
+            push("-b", Some(b.to_string()));
+            push("-ub", Some(b.to_string()));
+        }
+        if backend == Backend::Cpu {
+            push("--device", Some("none".into()));
+            return a;
+        }
+        // With --fit on, -ngl must stay unset or llama.cpp skips fitting.
+        match self.gpu_layers {
+            Some(n) => push("-ngl", Some(n.to_string())),
+            None => {
+                push("--fit", Some("on".into()));
+                push("--fit-target", Some(FIT_MARGIN_MIB.to_string()));
+            }
+        }
+        if self.flash_attn {
+            push("-fa", Some("on".into()));
+            if self.kv_q8 {
+                push("-ctk", Some("q8_0".into()));
+                push("-ctv", Some("q8_0".into()));
+            }
+        }
+        if let Some(n) = self.experts_on_cpu {
+            push("-ncmoe", Some(n.to_string()));
+        }
+        if let Some(m) = self.expert_cache_mib.filter(|m| *m > 0) {
+            push("--moe-cache-mib", Some(m.to_string()));
+        }
+        a
+    }
+}
+
 impl Backend {
     pub(super) fn dir_name(self) -> &'static str {
         match self {
@@ -297,6 +392,7 @@ impl LlmEngine {
         projector: Option<PathBuf>,
         context: u32,
         backend: Backend,
+        tuning: Tuning,
     ) -> Result<(), String> {
         let (exe, backend) = find_server(&engines_dir, backend)
             .ok_or_else(|| "No llama-server engine is installed".to_string())?;
@@ -328,11 +424,7 @@ impl LlmEngine {
         if let Some(p) = &projector {
             cmd.arg("--mmproj").arg(p);
         }
-        if backend == Backend::Cpu {
-            cmd.args(["--device", "none"]);
-        } else {
-            cmd.args(["-ngl", "99"]);
-        }
+        cmd.args(tuning.args(backend));
         #[cfg(windows)]
         cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
 
@@ -474,6 +566,47 @@ mod tests {
         assert_eq!(
             find_server(tmp.path(), Backend::Auto).unwrap().1,
             Backend::Cuda
+        );
+    }
+
+    #[test]
+    fn tuning_args_follow_settings() {
+        let auto = Tuning::default().args(Backend::Vulkan);
+        assert!(auto.contains(&"--fit".to_string()) && !auto.contains(&"-ngl".to_string()));
+        let fixed = Tuning {
+            gpu_layers: Some(20),
+            kv_q8: true,
+            ..Tuning::default()
+        };
+        let a = fixed.args(Backend::Cuda);
+        assert!(a.windows(2).any(|w| w == ["-ngl", "20"]) && a.contains(&"q8_0".to_string()));
+        assert!(!a.contains(&"--fit".to_string()));
+        let no_fa = Tuning {
+            flash_attn: false,
+            kv_q8: true,
+            ..Tuning::default()
+        };
+        assert!(!no_fa.args(Backend::Cuda).contains(&"q8_0".to_string()));
+        let cpu = Tuning {
+            threads: Some(8),
+            ..Tuning::default()
+        }
+        .args(Backend::Cpu);
+        assert_eq!(cpu, vec!["-t", "8", "--device", "none"]);
+    }
+
+    #[test]
+    fn tuning_values_are_clamped() {
+        let t = Tuning {
+            threads: Some(0),
+            batch: Some(1),
+            context: Some(5),
+            ..Tuning::default()
+        }
+        .sanitized();
+        assert_eq!(
+            (t.threads, t.batch, t.context),
+            (Some(1), Some(32), Some(512))
         );
     }
 

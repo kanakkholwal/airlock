@@ -3,6 +3,7 @@ import {
   commands,
   events,
   type Backend,
+  type Tuning,
   type ChatEvent,
   type DownloadEvent,
   type EngineStatus,
@@ -108,6 +109,9 @@ const transport: ChatTransport = async (history, onDelta, signal, onTool) => {
   }
 };
 
+/** Mirrors `Tuning::default()` in llm/engine.rs. */
+const DEFAULT_TUNING: Tuning = { gpu_layers: null, flash_attn: true, kv_q8: false, context: null, threads: null, batch: null, experts_on_cpu: null, expert_cache_mib: null };
+
 class LlmStore {
   engine = $state<EngineState>({ state: "stopped" });
   models = $state<ModelStatus[]>([]);
@@ -181,7 +185,7 @@ class LlmStore {
     await events.llmStateChanged.listen((e) => this.setEngine(e.payload));
     const status = await commands.llmStatus();
     if (status.status === "ok") this.setEngine(status.data);
-    await Promise.all([this.refresh(), this.refreshEngines(), this.refreshPaths(), chat.init()]);
+    await Promise.all([this.refresh(), this.refreshEngines(), this.refreshEnginePref(), this.refreshTuning(), this.refreshPaths(), chat.init()]);
     const last = await commands.llmLastModel();
     this.lastModelId = last ?? null;
     chat.needModel = () => void this.ensureLoaded();
@@ -249,6 +253,36 @@ class LlmStore {
   async refresh() {
     const res = await commands.llmCatalog();
     if (res.status === "ok") this.models = res.data;
+    else this.error = res.error;
+  }
+
+  /** Engine used for the next model load; "auto" picks CUDA, then Vulkan, then CPU. */
+  enginePref = $state<Backend>("auto");
+
+  tuning = $state<Tuning>({ ...DEFAULT_TUNING });
+
+  async refreshTuning() {
+    this.tuning = await commands.llmGetTuning();
+  }
+
+  async setTuning(patch: Partial<Tuning>) {
+    const next = { ...this.tuning, ...patch };
+    const res = await commands.llmSetTuning(next);
+    if (res.status === "ok") this.tuning = next;
+    else this.error = res.error;
+  }
+
+  resetTuning() {
+    return this.setTuning({ ...DEFAULT_TUNING });
+  }
+
+  async refreshEnginePref() {
+    this.enginePref = await commands.llmGetEngine();
+  }
+
+  async setEnginePref(backend: Backend) {
+    const res = await commands.llmSetEngine(backend);
+    if (res.status === "ok") this.enginePref = backend;
     else this.error = res.error;
   }
 

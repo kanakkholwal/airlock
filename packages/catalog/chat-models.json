@@ -4,7 +4,7 @@
     {
       "id": "lfm3-1.7b-q4",
       "name": "LFM3 1.7B",
-      "description": "Fast text model with strong tool use. Default for chat and the agent.",
+      "description": "Small and fast. Good first model.",
       "model": {
         "repo": "LiquidAI/LFM3-1.7B-GGUF",
         "filename": "LFM3-1.7B-Q4_K_M.gguf",
@@ -19,12 +19,12 @@
       "speed": 5,
       "intelligence": 2,
       "max_context": 262144,
-      "min_ram_gb": 4
+      "kv_kib_per_token": 12
     },
     {
       "id": "gemma4-e4b-q4",
       "name": "Gemma 4 E4B",
-      "description": "Google's compact model with strong answers for its size. Reads images. Fits 16 GB machines and runs well with a small GPU.",
+      "description": "Strong answers for its size. Reads images.",
       "tags": [
         "vision"
       ],
@@ -42,17 +42,18 @@
       },
       "context": 8192,
       "max_context": 131072,
-      "min_ram_gb": 8,
       "license": "Apache-2.0",
       "license_url": "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF",
       "recommended": true,
       "speed": 3,
-      "intelligence": 4
+      "intelligence": 4,
+      "kv_kib_per_token": 28,
+      "kv_fixed_mib": 40
     },
     {
       "id": "lfm3-vl-2b-q4",
       "name": "LFM3 VL 2B",
-      "description": "Understands images as well as text.",
+      "description": "Small model that also reads images.",
       "model": {
         "repo": "LiquidAI/LFM3-VL-2B-GGUF",
         "filename": "LFM3-VL-2B-Q4_K_M.gguf",
@@ -75,12 +76,12 @@
       "speed": 4,
       "intelligence": 2,
       "max_context": 128000,
-      "min_ram_gb": 4
+      "kv_kib_per_token": 12
     },
     {
       "id": "qwen3.5-4b-abliterated-q4",
       "name": "Qwen3.5 4B Uncensored",
-      "description": "Answers without safety filtering, so you decide what it is used for. Fits a 4 GB GPU. Also reads images.",
+      "description": "No safety filter. Reads images. Fits a 4 GB GPU.",
       "tags": [
         "uncensored",
         "vision"
@@ -104,12 +105,12 @@
       "speed": 3,
       "intelligence": 3,
       "max_context": 262144,
-      "min_ram_gb": 8
+      "kv_kib_per_token": 32
     },
     {
       "id": "qwen3.5-9b-abliterated-q4",
       "name": "Qwen3.5 9B Uncensored",
-      "description": "A larger uncensored model with better answers. Needs about 8 GB of free memory and runs slower on a small GPU.",
+      "description": "No safety filter. Smarter, slower on small GPUs.",
       "tags": [
         "uncensored",
         "vision"
@@ -133,12 +134,12 @@
       "speed": 2,
       "intelligence": 4,
       "max_context": 262144,
-      "min_ram_gb": 12
+      "kv_kib_per_token": 32
     },
     {
       "id": "underdog-saluki-27b-iq2",
       "name": "Underdog Saluki 27B",
-      "description": "Qwen3.8 27B squeezed to 2 bits, tuned to keep tool calling intact. Needs about 10 GB of free memory and is slow on a small GPU. Non-commercial license.",
+      "description": "Large 2-bit model, good at tools. Non-commercial.",
       "tags": [
         "vision"
       ],
@@ -161,12 +162,12 @@
       "speed": 1,
       "intelligence": 5,
       "max_context": 262144,
-      "min_ram_gb": 16
+      "kv_kib_per_token": 64
     },
     {
       "id": "gemma4-26b-a4b-q4",
       "name": "Gemma 4 26B A4B",
-      "description": "Mixture-of-experts model: 26B total, only 4B active per token, so it answers fast for its quality. Needs about 24 GB of memory in total.",
+      "description": "Large expert model that runs fast for its size.",
       "tags": [
         "vision",
         "moe"
@@ -185,17 +186,18 @@
       },
       "context": 8192,
       "max_context": 262144,
-      "min_ram_gb": 24,
       "license": "Apache-2.0",
       "license_url": "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF",
       "recommended": false,
       "speed": 3,
-      "intelligence": 5
+      "intelligence": 5,
+      "kv_kib_per_token": 20,
+      "kv_fixed_mib": 200
     },
     {
       "id": "qwen3.6-35b-a3b-q4",
       "name": "Qwen3.6 35B A3B",
-      "description": "Mixture-of-experts model: 35B total, 3B active per token. Strong at tools and long documents. Needs about 28 GB of memory in total.",
+      "description": "Largest expert model. Strong at tools and long text.",
       "tags": [
         "vision",
         "moe"
@@ -214,12 +216,12 @@
       },
       "context": 8192,
       "max_context": 262144,
-      "min_ram_gb": 28,
       "license": "Apache-2.0",
       "license_url": "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF",
       "recommended": false,
       "speed": 3,
-      "intelligence": 5
+      "intelligence": 5,
+      "kv_kib_per_token": 20
     }
   ]
 }

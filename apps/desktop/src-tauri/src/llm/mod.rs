@@ -1,3 +1,4 @@
+pub mod arch;
 pub mod attachments;
 pub mod catalog;
 pub mod commands;

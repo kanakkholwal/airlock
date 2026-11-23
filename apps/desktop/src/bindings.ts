@@ -776,6 +776,34 @@ async llmSetWindowHidden(hidden: boolean) : Promise<void> {
 async llmLastModel() : Promise<string | null> {
     return await TAURI_INVOKE("llm_last_model");
 },
+async llmGetEngine() : Promise<Backend> {
+    return await TAURI_INVOKE("llm_get_engine");
+},
+/**
+ * Applies from the next model load; a loaded model keeps running on its current engine.
+ */
+async llmSetEngine(backend: Backend) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_set_engine", { backend }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async llmGetTuning() : Promise<Tuning> {
+    return await TAURI_INVOKE("llm_get_tuning");
+},
+/**
+ * Applies from the next model load.
+ */
+async llmSetTuning(tuning: Tuning) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("llm_set_tuning", { tuning }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async llmStoragePaths() : Promise<Result<StoragePaths, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("llm_storage_paths") };
@@ -855,7 +883,7 @@ async llmImportModel(path: string) : Promise<Result<string, string>> {
 }
 },
 /**
- * Compares estimated resident memory with free RAM. VRAM is not checked yet.
+ * Compares estimated memory at the current settings with free RAM plus usable GPU memory.
  */
 async llmMemoryCheck(id: string) : Promise<Result<MemoryCheck, string>> {
     try {
@@ -1976,7 +2004,11 @@ sha256: string | null } } |
  * in a shared cache. Nothing to download.
  */
 "Local"
-export type ModelStatus = { id: string; name: string; description: string; size_bytes: number; license: string; license_url: string | null; recommended: boolean; tags: string[]; vision: boolean; imported: boolean; speed: number | null; intelligence: number | null; max_context: number | null; min_ram_gb: number | null; file: FileState }
+export type ModelStatus = { id: string; name: string; description: string; size_bytes: number; license: string; license_url: string | null; recommended: boolean; tags: string[]; vision: boolean; imported: boolean; speed: number | null; intelligence: number | null; max_context: number | null; 
+/**
+ * Estimated memory to run it at the current settings, rounded up to whole GB.
+ */
+needs_gb: number | null; file: FileState }
 export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
 export type Notice = { code: NoticeCode; level: NoticeLevel; source: NoticeSource; 
 /**
@@ -2184,7 +2216,11 @@ export type StreamTextEvent = { committed: string; tentative: string }
  * Semantic kind of "working" phase, used to localize the spinner label.
  */
 export type StreamWorkKind = "transcribing" | "polishing"
-export type SystemMemory = { total_bytes: number; free_bytes: number }
+export type SystemMemory = { total_bytes: number; free_bytes: number; 
+/**
+ * Free RAM plus most of the GPU's memory when a GPU engine will run the model.
+ */
+usable_bytes: number }
 /**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
  * and `Dark` force one of the two palettes Airlock already ships.
@@ -2248,6 +2284,35 @@ model_id: string; model_name: string; license: string; supported: boolean; engin
  */
 missing_bytes: number; total_bytes: number; default_voice: number; voices: TtsVoice[] }
 export type TtsVoice = { id: number; name: string; accent: string; gender: string }
+/**
+ * Launch settings shared by every llama.cpp engine; `None` means "let llama.cpp decide".
+ * Decision (product): only knobs that change speed or memory in a way a user can reason about.
+ */
+export type Tuning = { 
+/**
+ * Layers kept on the GPU. `None` fits as many as free memory allows (recommended).
+ */
+gpu_layers: number | null; flash_attn: boolean; 
+/**
+ * 8-bit chat cache: about half the memory. Needs flash attention.
+ */
+kv_q8: boolean; 
+/**
+ * Overrides the model's default chat length (tokens).
+ */
+context: number | null; threads: number | null; 
+/**
+ * Prompt batch size; larger reads long prompts faster but needs more memory.
+ */
+batch: number | null; 
+/**
+ * Mixture-of-experts only: layers whose experts stay in RAM.
+ */
+experts_on_cpu: number | null; 
+/**
+ * Mixture-of-experts only: GPU memory (MiB) for the most-used experts held in RAM.
+ */
+expert_cache_mib: number | null }
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 /**
  * What the engine reported for one reply. Saved with the message so a chat reopened later shows

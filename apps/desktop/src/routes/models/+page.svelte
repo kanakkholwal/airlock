@@ -8,6 +8,7 @@
   import ExploreModels from "#lib/components/app/explore-models.svelte";
   import SpeechModels from "#lib/components/app/speech-models.svelte";
   import VoiceModels from "#lib/components/app/voice-models.svelte";
+  import EngineTuning from "#lib/components/app/engine-tuning.svelte";
   import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
   import { ChatLineIcon, CpuBoltIcon, CpuIcon, DocumentTextIcon, DownloadMinimalisticIcon, DangerTriangleIcon, EyeIcon, MonitorIcon } from "@solar-icons/svelte/linear";
   import { inTauri } from "#lib/env.js";
@@ -140,7 +141,17 @@
     {/if}
     {#if noEngine}
       <p class="px-1 text-sm text-muted-foreground text-pretty">
-        An engine runs the models on your hardware. Install one to load a model.
+        Install an engine to run models.
+      </p>
+    {/if}
+    {#if llm.engines.filter((e) => e.installed).length > 1}
+      <p class="px-1 text-sm text-muted-foreground">
+        {#if llm.enginePref === "auto"}
+          Automatic. Pick an engine to choose yourself.
+        {:else}
+          Using {llm.engines.find((e) => e.backend === llm.enginePref)?.label ?? llm.enginePref}.
+          <button class="underline underline-offset-2 hover:text-foreground" onclick={() => llm.setEnginePref("auto")}>Use automatic</button>
+        {/if}
       </p>
     {/if}
     <ul class="flex flex-col gap-3">
@@ -148,13 +159,18 @@
         {@const dl = llm.downloads[`engine:${e.backend}`]}
         <ModelCard icon={CpuBoltIcon} title={e.label} facts={[mb(e.size_bytes)]} active={e.installed}>
           {#snippet badges()}
-            {#if e.installed}<Badge size="sm" variant="success">Installed</Badge>{/if}
+            {#if llm.engine.state === "ready" && llm.engine.backend === e.backend}<Badge size="sm" variant="info">Running now</Badge>{/if}
+            {#if e.installed && llm.enginePref === e.backend}<Badge size="sm" variant="success">Your choice</Badge>
+            {:else if e.installed}<Badge size="sm" variant="success">Installed</Badge>{/if}
             {#if e.recommended}<Badge size="sm">Recommended</Badge>{/if}
           {/snippet}
           {#snippet actions()}
             {#if dl}
               <Button size="sm" variant="secondary" onclick={() => llm.cancelEngineInstall(e.backend as Backend)}>Cancel</Button>
             {:else if e.installed}
+              {#if llm.enginePref !== e.backend}
+                <Button size="sm" variant="secondary" onclick={() => llm.setEnginePref(e.backend as Backend)}>Use this</Button>
+              {/if}
               <ModelMenu items={[{ label: "Remove", onselect: () => (confirming = `engine:${e.backend}`) }]} />
             {:else}
               <Button size="sm" variant={e.recommended ? "default" : "secondary"} onclick={() => llm.installEngine(e.backend as Backend)}>Install</Button>
@@ -176,6 +192,7 @@
         </ModelCard>
       {/each}
     </ul>
+    <EngineTuning />
   </section>
 
   <section class="flex flex-col gap-2">
@@ -193,16 +210,16 @@
         active={loaded(m) && llm.engine.state === "ready"}
       >
         {#snippet specs()}
-          <span class="inline-flex items-center gap-1.5" title="Disk space used by the download">
-            <DownloadMinimalisticIcon size={14} />{gb(m.size_bytes)} on disk
+          <span class="inline-flex items-center gap-1.5" title="Disk space">
+            <DownloadMinimalisticIcon size={14} />{gb(m.size_bytes)} disk
           </span>
-          {#if m.min_ram_gb}
-            <span class="inline-flex items-center gap-1.5" title="RAM plus GPU memory needed to run it comfortably. Model weights spill from GPU to RAM when the GPU is small.">
-              <CpuIcon size={14} />{m.min_ram_gb} GB+ RAM / VRAM
+          {#if m.needs_gb}
+            <span class="inline-flex items-center gap-1.5" title="Estimated RAM plus GPU memory at your current settings">
+              <CpuIcon size={14} />~{m.needs_gb} GB memory
             </span>
           {/if}
           {#if m.max_context}
-            <span class="inline-flex items-center gap-1.5" title="Longest conversation or document the model can read at once">
+            <span class="inline-flex items-center gap-1.5" title="Longest text it can read at once">
               <DocumentTextIcon size={14} />{ctx(m.max_context)} context
             </span>
           {/if}

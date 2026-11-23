@@ -1,3 +1,4 @@
+use super::arch::{self, ModelArch, MIN_CONTEXT};
 use super::catalog::{self, CatalogEntry, CatalogFile};
 use super::download::{fetch_verified, DownloadEvent, Fetch};
 use serde::Serialize;
@@ -34,7 +35,8 @@ pub struct ModelStatus {
     pub speed: Option<u8>,
     pub intelligence: Option<u8>,
     pub max_context: Option<u32>,
-    pub min_ram_gb: Option<u32>,
+    /// Estimated memory to run it at the current settings, rounded up to whole GB.
+    pub needs_gb: Option<u32>,
     pub file: FileState,
 }
 
@@ -98,6 +100,38 @@ pub(crate) fn free_disk_bytes(dir: &Path) -> Option<u64> {
         .map(|d| d.available_space())
 }
 
+/// Imported files that carry no readable architecture: the old flat cache guess.
+pub const UNKNOWN_ARCH: ModelArch = ModelArch {
+    max_context: MIN_CONTEXT,
+    kv_kib_per_token: 128,
+    kv_fixed_mib: 0,
+};
+
+/// Chat length the memory figures are quoted at: the user's override, else the smallest useful.
+fn effective_context(tuning: &super::engine::Tuning) -> u32 {
+    tuning.context.unwrap_or(MIN_CONTEXT)
+}
+
+/// Weights, architecture and the model's own context for a downloaded model id.
+pub fn profile(dir: &Path, id: &str) -> Option<(u64, ModelArch)> {
+    let (path, projector, _) = resolve(dir, id)?;
+    let bytes = |p: &Path| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0);
+    let weights = bytes(&path) + projector.as_deref().map_or(0, bytes);
+    let found = match catalog::find(id) {
+        Some(entry) => entry.arch(),
+        None => arch::from_gguf(&path).unwrap_or(UNKNOWN_ARCH),
+    };
+    Some((weights, found))
+}
+
+pub(super) fn usable_memory(app: &AppHandle) -> u64 {
+    usable_memory_bytes(app)
+}
+
+fn gb_up(bytes: u64) -> u32 {
+    bytes.div_ceil(1_073_741_824) as u32
+}
+
 fn free_memory_bytes() -> u64 {
     let Ok(mut sys) = sysinfo::System::new() else {
         return 0;
@@ -106,7 +140,7 @@ fn free_memory_bytes() -> u64 {
     sys.available_memory()
 }
 
-fn imported_models(dir: &Path) -> Vec<ModelStatus> {
+fn imported_models(dir: &Path, tuning: &super::engine::Tuning) -> Vec<ModelStatus> {
     let Ok(read) = std::fs::read_dir(dir.join("imported")) else {
         return vec![];
     };
@@ -127,13 +161,15 @@ fn imported_models(dir: &Path) -> Vec<ModelStatus> {
                     .and_then(|s| serde_json::from_str(&s).ok())
                     .unwrap_or_default();
             let repo = note["repo"].as_str();
+            let file_bytes = e.metadata().map(|m| m.len()).unwrap_or(0);
+            let found = arch::from_gguf(&e.path());
             ModelStatus {
                 id: format!("{IMPORT_PREFIX}{name}"),
                 name: name.trim_end_matches(".gguf").to_string(),
                 description: repo
                     .map(|r| format!("From huggingface.co/{r}"))
                     .unwrap_or_else(|| "Imported from a file.".into()),
-                size_bytes: e.metadata().map(|m| m.len()).unwrap_or(0),
+                size_bytes: file_bytes,
                 license: note["license"]
                     .as_str()
                     .map(str::to_string)
@@ -145,8 +181,12 @@ fn imported_models(dir: &Path) -> Vec<ModelStatus> {
                 imported: true,
                 speed: None,
                 intelligence: None,
-                max_context: None,
-                min_ram_gb: None,
+                max_context: found.map(|a| a.max_context),
+                needs_gb: Some(gb_up(found.unwrap_or(UNKNOWN_ARCH).memory_bytes(
+                    file_bytes,
+                    effective_context(tuning),
+                    tuning,
+                ))),
                 file: FileState::Downloaded,
             }
         })
@@ -192,6 +232,7 @@ pub fn resolve(dir: &Path, id: &str) -> Option<(PathBuf, Option<PathBuf>, u32)> 
 #[specta::specta]
 pub fn llm_catalog(app: AppHandle) -> Result<Vec<ModelStatus>, String> {
     let dir = models_dir(&app)?;
+    let tuning = super::paths::tuning(&app);
     let mut list: Vec<ModelStatus> = catalog::all()
         .iter()
         .map(|e| ModelStatus {
@@ -208,11 +249,15 @@ pub fn llm_catalog(app: AppHandle) -> Result<Vec<ModelStatus>, String> {
             speed: e.speed,
             intelligence: e.intelligence,
             max_context: e.max_context,
-            min_ram_gb: e.min_ram_gb,
+            needs_gb: Some(gb_up(e.arch().memory_bytes(
+                e.total_bytes(),
+                effective_context(&tuning),
+                &tuning,
+            ))),
             file: file_state(&dir, e),
         })
         .collect();
-    list.extend(imported_models(&dir));
+    list.extend(imported_models(&dir, &tuning));
     Ok(list)
 }
 
@@ -345,12 +390,14 @@ pub async fn llm_import_model(app: AppHandle, path: String) -> Result<String, St
 pub struct SystemMemory {
     pub total_bytes: u64,
     pub free_bytes: u64,
+    /// Free RAM plus most of the GPU's memory when a GPU engine will run the model.
+    pub usable_bytes: u64,
 }
 
 /// Lets Explore rate a download against this machine before it starts.
 #[tauri::command]
 #[specta::specta]
-pub fn llm_system_memory() -> SystemMemory {
+pub fn llm_system_memory(app: AppHandle) -> SystemMemory {
     let total = sysinfo::System::new()
         .map(|mut s| {
             s.refresh_memory();
@@ -360,21 +407,40 @@ pub fn llm_system_memory() -> SystemMemory {
     SystemMemory {
         total_bytes: total,
         free_bytes: free_memory_bytes(),
+        usable_bytes: usable_memory_bytes(&app),
     }
 }
 
-/// Compares estimated resident memory with free RAM. VRAM is not checked yet.
+/// Share of a GPU's total memory counted as usable: the desktop and other apps hold the rest.
+/// Free VRAM is not reported by the device probe, so this is a fixed share of the total.
+const GPU_USABLE_SHARE: f64 = 0.8;
+
+/// Free RAM plus the largest GPU's usable memory. CPU-only runs count RAM alone, since weights
+/// then never reach the GPU.
+fn usable_memory_bytes(app: &AppHandle) -> u64 {
+    let ram = free_memory_bytes();
+    if super::paths::engine_pref(app) == super::engine::Backend::Cpu {
+        return ram;
+    }
+    let gpu = app
+        .try_state::<std::sync::Arc<crate::managers::transcription::TranscriptionManager>>()
+        .map(|tm| crate::managers::transcription::get_available_accelerators(&tm))
+        .and_then(|a| a.gpu_devices.iter().map(|g| g.total_vram_mb).max())
+        .unwrap_or(0) as u64
+        * 1024
+        * 1024;
+    ram + (gpu as f64 * GPU_USABLE_SHARE) as u64
+}
+
+/// Compares estimated memory at the current settings with free RAM plus usable GPU memory.
 #[tauri::command]
 #[specta::specta]
 pub fn llm_memory_check(app: AppHandle, id: String) -> Result<MemoryCheck, String> {
-    let required = if let Some(entry) = catalog::find(&id) {
-        catalog::estimated_memory_bytes(entry)
-    } else {
-        let dir = models_dir(&app)?;
-        let (path, _, _) = resolve(&dir, &id).ok_or("Model is not on disk")?;
-        std::fs::metadata(path).map_err(|e| e.to_string())?.len() + 256 * 1024 * 1024
-    };
-    let free = free_memory_bytes();
+    let tuning = super::paths::tuning(&app);
+    let dir = models_dir(&app)?;
+    let (weights, found) = profile(&dir, &id).ok_or("Model is not on disk")?;
+    let required = found.memory_bytes(weights, effective_context(&tuning), &tuning);
+    let free = usable_memory_bytes(&app);
     Ok(MemoryCheck {
         required_bytes: required,
         free_bytes: free,
