@@ -15,6 +15,7 @@ use tauri::AppHandle;
 const SCHEMA: u32 = 1;
 
 pub const CHAT_MODELS: &str = include_str!("../../../../packages/catalog/chat-models.json");
+pub const SPEECH_MODELS: &str = include_str!("../../../../packages/catalog/speech-models.json");
 pub const IMAGE_MODELS: &str = include_str!("../../../../packages/catalog/image-models.json");
 pub const ENGINES: &str = include_str!("../../../../packages/catalog/engines.json");
 pub const VOICES: &str = include_str!("../../../../packages/catalog/voices.json");

@@ -1161,6 +1161,44 @@ async ttsSynthesize(req: SpeakRequest) : Promise<Result<SpeechClip, string>> {
 }
 },
 /**
+ * Starts the model's server, unloading chat first. Returns the status once it answers.
+ */
+async voiceGenLoad(id: string) : Promise<Result<VoiceGenStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_gen_load", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async voiceGenStatus() : Promise<Result<VoiceGenStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_gen_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async voiceGenUnload() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_gen_unload") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Speaks `req.text` and returns the clip. The model must be loaded first.
+ */
+async voiceGenSay(req: VoiceGenRequest) : Promise<Result<SpeechClip, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("voice_gen_say", { req }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Check if Apple Intelligence is available on this device.
  * Called by the frontend when the user selects Apple Intelligence provider.
  */
@@ -2008,7 +2046,11 @@ export type ModelStatus = { id: string; name: string; description: string; size_
 /**
  * Estimated memory to run it at the current settings, rounded up to whole GB.
  */
-needs_gb: number | null; file: FileState }
+needs_gb: number | null; 
+/**
+ * `chat` or `speech`.
+ */
+kind: string; tier: string | null; languages: string[]; features: string[]; controls: string[]; voices: VoiceOption[]; file: FileState }
 export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
 export type Notice = { code: NoticeCode; level: NoticeLevel; source: NoticeSource; 
 /**
@@ -2320,6 +2362,28 @@ export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "x
  */
 export type Usage = { prompt_tokens: number | null; completion_tokens: number | null; tokens_per_second: number | null; first_token_ms: number | null }
 export type VadBackend = "silero" | "earshot"
+export type VoiceGenRequest = { id: string; text: string; voice: string | null; language: string | null; speed: number | null; seed: number | null; temperature: number | null; 
+/**
+ * A written description of the voice to create (models with `design`).
+ */
+design: string | null; 
+/**
+ * A clip of the voice to copy (models with `clone`).
+ */
+reference_path: string | null; reference_text: string | null; flow_steps: number | null; cfg_scale: number | null }
+export type VoiceGenStatus = { 
+/**
+ * The speech model in memory, if any.
+ */
+loaded: string | null; 
+/**
+ * Preset voices the loaded model reports.
+ */
+voices: string[] }
+/**
+ * A preset voice a speech model ships with.
+ */
+export type VoiceOption = { id: string; name: string }
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 export type WireMessage = { role: string; content: string; 
 /**

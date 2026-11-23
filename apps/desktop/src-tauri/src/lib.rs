@@ -30,6 +30,7 @@ mod tray;
 mod tray_i18n;
 mod tts;
 mod utils;
+mod voicegen;
 pub mod webkit_renderer;
 
 pub use cli::CliArgs;
@@ -230,6 +231,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     llm::models::manage(app_handle);
     image::manage(app_handle);
     tts::manage(app_handle);
+    voicegen::manage(app_handle);
     if let Err(e) = chat::commands::manage(app_handle) {
         log::error!("Chat database unavailable: {e}");
     }
@@ -877,6 +879,10 @@ pub fn run(cli_args: CliArgs) {
             tts::tts_install_cancel,
             tts::tts_remove,
             tts::tts_synthesize,
+            voicegen::voice_gen_load,
+            voicegen::voice_gen_status,
+            voicegen::voice_gen_unload,
+            voicegen::voice_gen_say,
             commands::check_apple_intelligence_available,
             commands::initialize_enigo,
             commands::initialize_shortcuts,

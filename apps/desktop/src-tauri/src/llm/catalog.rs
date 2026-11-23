@@ -1,5 +1,5 @@
 use super::arch::ModelArch;
-use crate::data::{leak_slice, leak_str, load, CHAT_MODELS};
+use crate::data::{leak_slice, leak_str, load, CHAT_MODELS, SPEECH_MODELS};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::sync::OnceLock;
@@ -12,8 +12,32 @@ pub struct CatalogFile {
     pub sha256: &'static str,
 }
 
+/// A preset voice a speech model ships with.
+#[derive(Debug, Clone, Copy, Serialize, Type)]
+pub struct VoiceOption {
+    pub id: &'static str,
+    pub name: &'static str,
+}
+
+/// What a catalog entry is for. Chat models load into the chat engine, speech models speak.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kind {
+    Chat,
+    Speech,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct CatalogEntry {
+    pub kind: Kind,
+    /// Size class shown on the card: `tiny`, `standard` or `studio` (speech models).
+    pub tier: Option<&'static str>,
+    /// ISO 639-1 codes the model can speak or read.
+    pub languages: &'static [&'static str],
+    /// Capability labels such as `voice-cloning`, `voice-design`, `multilingual`.
+    pub features: &'static [&'static str],
+    /// The settings the model responds to, such as `voice`, `speed`, `clone`, `design`.
+    pub controls: &'static [&'static str],
+    pub voices: &'static [VoiceOption],
     pub id: &'static str,
     pub name: &'static str,
     pub description: &'static str,
@@ -47,7 +71,25 @@ struct RawFile {
 }
 
 #[derive(Deserialize)]
+struct RawVoice {
+    id: String,
+    name: String,
+}
+
+#[derive(Deserialize)]
 struct RawEntry {
+    #[serde(default)]
+    kind: Option<String>,
+    #[serde(default)]
+    tier: Option<String>,
+    #[serde(default)]
+    languages: Vec<String>,
+    #[serde(default)]
+    features: Vec<String>,
+    #[serde(default)]
+    controls: Vec<String>,
+    #[serde(default)]
+    voices: Vec<RawVoice>,
     id: String,
     name: String,
     description: String,
@@ -92,9 +134,30 @@ fn file(raw: RawFile) -> CatalogFile {
 pub fn all() -> &'static [CatalogEntry] {
     static CELL: OnceLock<Vec<CatalogEntry>> = OnceLock::new();
     CELL.get_or_init(|| {
-        load::<RawEntry>("chat-models", CHAT_MODELS, |e| e.id.as_str())
-            .into_iter()
+        let mut raw = load::<RawEntry>("chat-models", CHAT_MODELS, |e| e.id.as_str());
+        raw.extend(load::<RawEntry>("speech-models", SPEECH_MODELS, |e| {
+            e.id.as_str()
+        }));
+        raw.into_iter()
             .map(|e| CatalogEntry {
+                kind: if e.kind.as_deref() == Some("speech") {
+                    Kind::Speech
+                } else {
+                    Kind::Chat
+                },
+                tier: e.tier.map(leak_str),
+                languages: leak_slice(e.languages.into_iter().map(leak_str).collect()),
+                features: leak_slice(e.features.into_iter().map(leak_str).collect()),
+                controls: leak_slice(e.controls.into_iter().map(leak_str).collect()),
+                voices: leak_slice(
+                    e.voices
+                        .into_iter()
+                        .map(|v| VoiceOption {
+                            id: leak_str(v.id),
+                            name: leak_str(v.name),
+                        })
+                        .collect(),
+                ),
                 id: leak_str(e.id),
                 name: leak_str(e.name),
                 description: leak_str(e.description),

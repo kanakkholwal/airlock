@@ -37,6 +37,13 @@ pub struct ModelStatus {
     pub max_context: Option<u32>,
     /// Estimated memory to run it at the current settings, rounded up to whole GB.
     pub needs_gb: Option<u32>,
+    /// `chat` or `speech`.
+    pub kind: String,
+    pub tier: Option<String>,
+    pub languages: Vec<String>,
+    pub features: Vec<String>,
+    pub controls: Vec<String>,
+    pub voices: Vec<catalog::VoiceOption>,
     pub file: FileState,
 }
 
@@ -182,6 +189,12 @@ fn imported_models(dir: &Path, tuning: &super::engine::Tuning) -> Vec<ModelStatu
                 speed: None,
                 intelligence: None,
                 max_context: found.map(|a| a.max_context),
+                kind: "chat".into(),
+                tier: None,
+                languages: vec![],
+                features: vec![],
+                controls: vec![],
+                voices: vec![],
                 needs_gb: Some(gb_up(found.unwrap_or(UNKNOWN_ARCH).memory_bytes(
                     file_bytes,
                     effective_context(tuning),
@@ -249,6 +262,17 @@ pub fn llm_catalog(app: AppHandle) -> Result<Vec<ModelStatus>, String> {
             speed: e.speed,
             intelligence: e.intelligence,
             max_context: e.max_context,
+            kind: if e.kind == catalog::Kind::Speech {
+                "speech"
+            } else {
+                "chat"
+            }
+            .into(),
+            tier: e.tier.map(str::to_string),
+            languages: e.languages.iter().map(|s| s.to_string()).collect(),
+            features: e.features.iter().map(|s| s.to_string()).collect(),
+            controls: e.controls.iter().map(|s| s.to_string()).collect(),
+            voices: e.voices.to_vec(),
             needs_gb: Some(gb_up(e.arch().memory_bytes(
                 e.total_bytes(),
                 effective_context(&tuning),

@@ -116,6 +116,8 @@ class LlmStore {
   engine = $state<EngineState>({ state: "stopped" });
   models = $state<ModelStatus[]>([]);
   downloads = $state<Record<string, DownloadProgress>>({});
+  /** Speech models (voice generation), kept apart from the chat models. */
+  voiceModels = $state<ModelStatus[]>([]);
   engines = $state<EngineStatus[]>([]);
   paths = $state<StoragePaths | null>(null);
   error = $state<string | null>(null);
@@ -252,8 +254,10 @@ class LlmStore {
 
   async refresh() {
     const res = await commands.llmCatalog();
-    if (res.status === "ok") this.models = res.data;
-    else this.error = res.error;
+    if (res.status === "ok") {
+      this.models = res.data.filter((m) => m.kind !== "speech");
+      this.voiceModels = res.data.filter((m) => m.kind === "speech");
+    } else this.error = res.error;
   }
 
   /** Engine used for the next model load; "auto" picks CUDA, then Vulkan, then CPU. */

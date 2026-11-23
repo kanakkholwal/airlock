@@ -7,6 +7,7 @@
   import { page } from "$app/state";
   import ExploreModels from "#lib/components/app/explore-models.svelte";
   import SpeechModels from "#lib/components/app/speech-models.svelte";
+  import VoiceGeneration from "#lib/components/app/voice-generation.svelte";
   import VoiceModels from "#lib/components/app/voice-models.svelte";
   import EngineTuning from "#lib/components/app/engine-tuning.svelte";
   import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
@@ -107,7 +108,13 @@
       <SpeechModels />
     </section>
   {:else if tab === "voice"}
-    <VoiceModels />
+    <div class="flex flex-col gap-8">
+      <VoiceGeneration />
+      <section class="flex flex-col gap-3">
+        <h2 class="px-1 text-sm font-medium text-muted-foreground">Read aloud</h2>
+        <VoiceModels />
+      </section>
+    </div>
   {:else if tab === "explore"}
     <ExploreModels />
   {:else}

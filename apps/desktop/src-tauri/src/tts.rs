@@ -174,7 +174,7 @@ fn model_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(model_root(app)?.join(&pack().archive.folder))
 }
 
-fn cache_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn cache_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = crate::portable::app_data_dir(app)
         .map_err(|e| e.to_string())?
         .join("tts-cache");
@@ -460,7 +460,7 @@ pub fn wav_seconds(bytes: &[u8]) -> Option<f64> {
 }
 
 /// Keeps the cache small: clips are played once, then only help a quick replay.
-fn prune_cache(dir: &Path) {
+pub(crate) fn prune_cache(dir: &Path) {
     let Ok(read) = std::fs::read_dir(dir) else {
         return;
     };

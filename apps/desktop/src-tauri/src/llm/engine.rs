@@ -239,7 +239,10 @@ fn exe_name() -> &'static str {
 }
 
 /// `AIRLOCK_LLAMA_DIR` overrides the lookup for local development.
-fn find_server(engines_dir: &std::path::Path, backend: Backend) -> Option<(PathBuf, Backend)> {
+pub(crate) fn find_server(
+    engines_dir: &std::path::Path,
+    backend: Backend,
+) -> Option<(PathBuf, Backend)> {
     if let Some(dir) = std::env::var_os("AIRLOCK_LLAMA_DIR") {
         let exe = PathBuf::from(dir).join(exe_name());
         let resolved = if backend == Backend::Auto {
@@ -264,14 +267,14 @@ fn find_server(engines_dir: &std::path::Path, backend: Backend) -> Option<(PathB
 
 /// Decision (security): the loopback server is protected by a per-launch key, so other local
 /// programs and web pages cannot use the model or read prompts.
-fn new_api_key() -> String {
+pub(crate) fn new_api_key() -> String {
     use rand::RngCore;
     let mut bytes = [0u8; 32];
     rand::rngs::OsRng.fill_bytes(&mut bytes);
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn free_port() -> std::io::Result<u16> {
+pub(crate) fn free_port() -> std::io::Result<u16> {
     Ok(std::net::TcpListener::bind("127.0.0.1:0")?
         .local_addr()?
         .port())

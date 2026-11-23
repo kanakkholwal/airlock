@@ -1,0 +1,381 @@
+{
+  "schema": 1,
+  "items": [
+    {
+      "id": "tiny-voca",
+      "kind": "speech",
+      "name": "tiny-voca",
+      "description": "Tiny English voices, instant speech.",
+      "tier": "tiny",
+      "languages": [
+        "en"
+      ],
+      "features": [
+        "preset-voices"
+      ],
+      "controls": [
+        "voice",
+        "speed",
+        "seed"
+      ],
+      "model": {
+        "repo": "ggml-org/tiny-voca-GGUF",
+        "filename": "tiny-voca-F32.gguf",
+        "size_bytes": 12169280,
+        "sha256": "6cc38fe1a32ac312d906da6549a142de8cb6a2d0d1f10e63966a8f7c49be72cc"
+      },
+      "projector": {
+        "repo": "ggml-org/tiny-voca-GGUF",
+        "filename": "mmproj-tiny-voca-F32.gguf",
+        "size_bytes": 13641888,
+        "sha256": "c70b6ba351335bb72bdd1ae42412f64490816c3accaec2a2c2990fbcfc33c48c"
+      },
+      "context": 2048,
+      "kv_kib_per_token": 32,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/n4ze3m/tiny-voca",
+      "recommended": false,
+      "tags": [],
+      "voices": [
+        {
+          "id": "M2",
+          "name": "Male"
+        },
+        {
+          "id": "F2",
+          "name": "Female"
+        }
+      ]
+    },
+    {
+      "id": "soprano-1.1-80m",
+      "kind": "speech",
+      "name": "Soprano 1.1",
+      "description": "Small, fast English voice.",
+      "tier": "tiny",
+      "languages": [
+        "en"
+      ],
+      "features": [],
+      "controls": [
+        "seed",
+        "temperature"
+      ],
+      "model": {
+        "repo": "ggml-org/Soprano-1.1-80M-GGUF",
+        "filename": "Soprano-1.1-80M-Q8_0.gguf",
+        "size_bytes": 84921216,
+        "sha256": "749b45e4cfecdde096d15def0ad9311453dcaff2ad44685278281e1d0d48bb2a"
+      },
+      "projector": {
+        "repo": "ggml-org/Soprano-1.1-80M-GGUF",
+        "filename": "mmproj-Soprano-1.1-80M-F16.gguf",
+        "size_bytes": 60821216,
+        "sha256": "6ffe378cf5a89512bcd78d87f1b0bbcc95f76afdddaab44896bc11f144c08286"
+      },
+      "context": 2048,
+      "kv_kib_per_token": 32,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/ekwek/Soprano-1.1-80M",
+      "recommended": false,
+      "tags": []
+    },
+    {
+      "id": "chatterbox-turbo",
+      "kind": "speech",
+      "name": "Chatterbox Turbo",
+      "description": "Natural English voice. Clones a voice from a short clip.",
+      "tier": "standard",
+      "languages": [
+        "en"
+      ],
+      "features": [
+        "voice-cloning"
+      ],
+      "controls": [
+        "clone",
+        "seed",
+        "temperature"
+      ],
+      "model": {
+        "repo": "ggml-org/chatterbox-turbo-GGUF",
+        "filename": "chatterbox-turbo-Q8_0.gguf",
+        "size_bytes": 481791712,
+        "sha256": "c3b93d3c65327ef5affbdf6c7975475782bb29bc70357c7e863e2d564cadf70f"
+      },
+      "projector": {
+        "repo": "ggml-org/chatterbox-turbo-GGUF",
+        "filename": "mmproj-chatterbox-turbo-F16.gguf",
+        "size_bytes": 555371392,
+        "sha256": "de86b2ead959ba7ffc487ac2ba278e99aed0ef3b5bd04f083352b36c9b86738f"
+      },
+      "context": 2048,
+      "kv_kib_per_token": 32,
+      "license": "MIT",
+      "license_url": "https://huggingface.co/ResembleAI/chatterbox-turbo",
+      "recommended": true,
+      "tags": []
+    },
+    {
+      "id": "chatterbox-multilingual",
+      "kind": "speech",
+      "name": "Chatterbox Multilingual",
+      "description": "23 languages. Clones a voice from a short clip.",
+      "tier": "standard",
+      "languages": [
+        "ar",
+        "da",
+        "de",
+        "el",
+        "en",
+        "es",
+        "fi",
+        "fr",
+        "he",
+        "hi",
+        "it",
+        "ja",
+        "ko",
+        "ms",
+        "nl",
+        "no",
+        "pl",
+        "pt",
+        "ru",
+        "sv",
+        "sw",
+        "tr",
+        "zh"
+      ],
+      "features": [
+        "multilingual",
+        "voice-cloning"
+      ],
+      "controls": [
+        "language",
+        "clone",
+        "seed",
+        "temperature"
+      ],
+      "model": {
+        "repo": "ggml-org/chatterbox-GGUF",
+        "filename": "chatterbox-Q8_0.gguf",
+        "size_bytes": 558520640,
+        "sha256": "8fb23a4008577f4fab96083b04da83789934624b0675aafeb7ed72c2bfa5f8d5"
+      },
+      "projector": {
+        "repo": "ggml-org/chatterbox-GGUF",
+        "filename": "mmproj-chatterbox-F16.gguf",
+        "size_bytes": 595185120,
+        "sha256": "e2bc7506753d8f4ad6f66afe8fb27fdea4256c9a88a37386303e97e0c4a9f492"
+      },
+      "context": 2048,
+      "kv_kib_per_token": 32,
+      "license": "MIT",
+      "license_url": "https://huggingface.co/ResembleAI/chatterbox",
+      "recommended": false,
+      "tags": []
+    },
+    {
+      "id": "qwen3-tts-1.7b-base",
+      "kind": "speech",
+      "name": "Qwen3-TTS 1.7B",
+      "description": "10 languages. Clones a voice from a few seconds of audio.",
+      "tier": "standard",
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "de",
+        "fr",
+        "ru",
+        "pt",
+        "es",
+        "it"
+      ],
+      "features": [
+        "multilingual",
+        "voice-cloning"
+      ],
+      "controls": [
+        "language",
+        "clone",
+        "clone_text",
+        "seed",
+        "temperature"
+      ],
+      "model": {
+        "repo": "ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF",
+        "filename": "Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf",
+        "size_bytes": 1035965280,
+        "sha256": "8d18c94acb2addd042f97da63c98be144eafa76d0d9495177eab65130cf85129"
+      },
+      "projector": {
+        "repo": "ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF",
+        "filename": "mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf",
+        "size_bytes": 446422912,
+        "sha256": "6fd65188839bcd6ecc91b277ad471e22a0edfada4699a0fe82f1165c18cfcce2"
+      },
+      "context": 2048,
+      "kv_kib_per_token": 32,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+      "recommended": false,
+      "tags": []
+    },
+    {
+      "id": "zonos3-mini",
+      "kind": "speech",
+      "name": "ZONOS3 Mini",
+      "description": "43 languages, preset voices, voice cloning. 44.1 kHz audio.",
+      "tier": "standard",
+      "languages": [
+        "en",
+        "fr",
+        "es",
+        "de",
+        "it",
+        "pt",
+        "nl",
+        "pl",
+        "ru",
+        "sv",
+        "tr",
+        "uk",
+        "cs",
+        "da",
+        "fi",
+        "el",
+        "hu",
+        "no",
+        "ro",
+        "sk",
+        "bg",
+        "zh",
+        "ja",
+        "ko",
+        "ar",
+        "he",
+        "vi",
+        "id",
+        "th",
+        "tl",
+        "ms",
+        "ka",
+        "hi",
+        "bn",
+        "ta",
+        "te",
+        "mr",
+        "gu",
+        "kn",
+        "ml",
+        "pa",
+        "or",
+        "ur"
+      ],
+      "features": [
+        "multilingual",
+        "voice-cloning",
+        "preset-voices"
+      ],
+      "controls": [
+        "voice",
+        "language",
+        "clone",
+        "speed",
+        "seed",
+        "temperature"
+      ],
+      "model": {
+        "repo": "ggml-org/ZONOS3-Mini-GGUF",
+        "filename": "ZONOS3-Mini-Q8_0.gguf",
+        "size_bytes": 854726208,
+        "sha256": "60568efc88e2f9231f4f5c061e246421f575986642d72ab9ae68f77d6cf76be4"
+      },
+      "projector": {
+        "repo": "ggml-org/ZONOS3-Mini-GGUF",
+        "filename": "mmproj-ZONOS3-Mini-F32.gguf",
+        "size_bytes": 1142502880,
+        "sha256": "aeeb92325b4b6927bef656390b78e1246148065f947d8b59c2663557a809414d"
+      },
+      "context": 2048,
+      "kv_kib_per_token": 32,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/Zyphra/ZONOS3-Mini",
+      "recommended": false,
+      "tags": []
+    },
+    {
+      "id": "voxcpm2",
+      "kind": "speech",
+      "name": "VoxCPM2",
+      "description": "Describe a voice in words and it creates it. 30 languages, cloning, 48 kHz.",
+      "tier": "studio",
+      "languages": [
+        "ar",
+        "my",
+        "zh",
+        "da",
+        "nl",
+        "en",
+        "fi",
+        "fr",
+        "de",
+        "el",
+        "he",
+        "hi",
+        "id",
+        "it",
+        "ja",
+        "km",
+        "ko",
+        "lo",
+        "ms",
+        "no",
+        "pl",
+        "pt",
+        "ru",
+        "es",
+        "sw",
+        "sv",
+        "tl",
+        "th",
+        "tr",
+        "vi"
+      ],
+      "features": [
+        "multilingual",
+        "voice-design",
+        "voice-cloning"
+      ],
+      "controls": [
+        "design",
+        "clone",
+        "seed",
+        "temperature",
+        "flow_steps",
+        "cfg_scale"
+      ],
+      "model": {
+        "repo": "ggml-org/VoxCPM2-GGUF",
+        "filename": "VoxCPM2-Q8_0.gguf",
+        "size_bytes": 1565764064,
+        "sha256": "b09cd3afab454f23922632fd474aa0d5d667e128e8bf36e81e77ec7e71fac64b"
+      },
+      "projector": {
+        "repo": "ggml-org/VoxCPM2-GGUF",
+        "filename": "mmproj-VoxCPM2-BF16.gguf",
+        "size_bytes": 2007741504,
+        "sha256": "2d0be367461d11e12a8544487491936a8f1d61d70d5313bb25dd50a4693be2ee"
+      },
+      "context": 2048,
+      "kv_kib_per_token": 64,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/openbmb/VoxCPM2",
+      "recommended": false,
+      "tags": []
+    }
+  ]
+}

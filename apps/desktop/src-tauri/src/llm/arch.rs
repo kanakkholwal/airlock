@@ -20,7 +20,10 @@ const AUTO_CONTEXT_CAP: u32 = 262_144;
 const AUTO_MEMORY_SHARE: f64 = 0.75;
 /// 8-bit cache size relative to 16-bit (q8_0 is 8.5 bits per value).
 const KV_Q8_RATIO: f64 = 8.5 / 16.0;
-pub const WORK_RESERVE: u64 = 256 * 1024 * 1024;
+/// Fixed overhead on top of weights and chat cache. Measured on CPU (resident memory minus the
+/// file and the cache): 0.75 GiB (LFM3 1.7B), 1.5 GiB (Qwen3.5 4B), 0.45 GiB (Gemma 4 E4B).
+/// Half a GiB sits in the middle; the auto-context memory share leaves the rest as headroom.
+pub const WORK_RESERVE: u64 = 512 * 1024 * 1024;
 
 fn uint(v: &GgufValue) -> Option<u64> {
     match v {
