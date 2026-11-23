@@ -33,6 +33,8 @@ pub struct ModelStatus {
     pub imported: bool,
     pub speed: Option<u8>,
     pub intelligence: Option<u8>,
+    pub max_context: Option<u32>,
+    pub min_ram_gb: Option<u32>,
     pub file: FileState,
 }
 
@@ -143,6 +145,8 @@ fn imported_models(dir: &Path) -> Vec<ModelStatus> {
                 imported: true,
                 speed: None,
                 intelligence: None,
+                max_context: None,
+                min_ram_gb: None,
                 file: FileState::Downloaded,
             }
         })
@@ -203,6 +207,8 @@ pub fn llm_catalog(app: AppHandle) -> Result<Vec<ModelStatus>, String> {
             imported: false,
             speed: e.speed,
             intelligence: e.intelligence,
+            max_context: e.max_context,
+            min_ram_gb: e.min_ram_gb,
             file: file_state(&dir, e),
         })
         .collect();

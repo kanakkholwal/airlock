@@ -20,6 +20,10 @@ pub struct CatalogEntry {
     /// Vision projector, downloaded together with the model.
     pub projector: Option<CatalogFile>,
     pub context: u32,
+    /// Largest context the model supports, shown in the picker.
+    pub max_context: Option<u32>,
+    /// Rough total memory (RAM plus VRAM) for comfortable use, in GB.
+    pub min_ram_gb: Option<u32>,
     pub license: &'static str,
     pub license_url: &'static str,
     pub recommended: bool,
@@ -47,6 +51,10 @@ struct RawEntry {
     #[serde(default)]
     projector: Option<RawFile>,
     context: u32,
+    #[serde(default)]
+    max_context: Option<u32>,
+    #[serde(default)]
+    min_ram_gb: Option<u32>,
     license: String,
     license_url: String,
     #[serde(default)]
@@ -82,6 +90,8 @@ pub fn all() -> &'static [CatalogEntry] {
                 model: file(e.model),
                 projector: e.projector.map(file),
                 context: e.context,
+                max_context: e.max_context,
+                min_ram_gb: e.min_ram_gb,
                 license: leak_str(e.license),
                 license_url: leak_str(e.license_url),
                 recommended: e.recommended,

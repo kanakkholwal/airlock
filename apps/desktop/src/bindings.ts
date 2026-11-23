@@ -1976,7 +1976,7 @@ sha256: string | null } } |
  * in a shared cache. Nothing to download.
  */
 "Local"
-export type ModelStatus = { id: string; name: string; description: string; size_bytes: number; license: string; license_url: string | null; recommended: boolean; tags: string[]; vision: boolean; imported: boolean; speed: number | null; intelligence: number | null; file: FileState }
+export type ModelStatus = { id: string; name: string; description: string; size_bytes: number; license: string; license_url: string | null; recommended: boolean; tags: string[]; vision: boolean; imported: boolean; speed: number | null; intelligence: number | null; max_context: number | null; min_ram_gb: number | null; file: FileState }
 export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
 export type Notice = { code: NoticeCode; level: NoticeLevel; source: NoticeSource; 
 /**

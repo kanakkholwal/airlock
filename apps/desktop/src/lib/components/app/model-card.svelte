@@ -11,6 +11,7 @@
     facts = [],
     badges,
     actions,
+    specs,
     footer,
     active = false,
   }: {
@@ -21,6 +22,8 @@
     facts?: (string | null | undefined | false)[];
     badges?: Snippet;
     actions?: Snippet;
+    /** Icon chips for what the model needs: disk, memory, context. */
+    specs?: Snippet;
     footer?: Snippet;
     active?: boolean;
   } = $props();
@@ -44,6 +47,9 @@
       </div>
       {#if description}
         <p class="mt-1 text-sm text-muted-foreground text-pretty">{description}</p>
+      {/if}
+      {#if specs}
+        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">{@render specs()}</div>
       {/if}
       {#if shown.length > 0}
         <p class="mt-1.5 text-xs text-muted-foreground tabular-nums">{shown.join(" · ")}</p>

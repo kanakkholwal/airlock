@@ -17,7 +17,37 @@
       "recommended": true,
       "tags": [],
       "speed": 5,
-      "intelligence": 2
+      "intelligence": 2,
+      "max_context": 262144,
+      "min_ram_gb": 4
+    },
+    {
+      "id": "gemma4-e4b-q4",
+      "name": "Gemma 4 E4B",
+      "description": "Google's compact model with strong answers for its size. Reads images. Fits 16 GB machines and runs well with a small GPU.",
+      "tags": [
+        "vision"
+      ],
+      "model": {
+        "repo": "unsloth/gemma-4-E4B-it-GGUF",
+        "filename": "gemma-4-E4B-it-Q4_K_M.gguf",
+        "size_bytes": 4977171584,
+        "sha256": "85a896a047553e842f25297ee5b031d64ff30147d9c4af17b1e4b394cd1fab87"
+      },
+      "projector": {
+        "repo": "unsloth/gemma-4-E4B-it-GGUF",
+        "filename": "mmproj-F16.gguf",
+        "size_bytes": 990372672,
+        "sha256": "ddf46c21d7078e95338cfc22306b19b276a29a5ad089023449dd54d4b6170a51"
+      },
+      "context": 8192,
+      "max_context": 131072,
+      "min_ram_gb": 8,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF",
+      "recommended": true,
+      "speed": 3,
+      "intelligence": 4
     },
     {
       "id": "lfm3-vl-2b-q4",
@@ -43,7 +73,9 @@
         "vision"
       ],
       "speed": 4,
-      "intelligence": 2
+      "intelligence": 2,
+      "max_context": 128000,
+      "min_ram_gb": 4
     },
     {
       "id": "qwen3.5-4b-abliterated-q4",
@@ -70,7 +102,9 @@
       "license_url": "https://huggingface.co/mradermacher/Huihui-Qwen3.5-4B-abliterated-GGUF",
       "recommended": false,
       "speed": 3,
-      "intelligence": 3
+      "intelligence": 3,
+      "max_context": 262144,
+      "min_ram_gb": 8
     },
     {
       "id": "qwen3.5-9b-abliterated-q4",
@@ -97,7 +131,95 @@
       "license_url": "https://huggingface.co/mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF",
       "recommended": false,
       "speed": 2,
-      "intelligence": 4
+      "intelligence": 4,
+      "max_context": 262144,
+      "min_ram_gb": 12
+    },
+    {
+      "id": "underdog-saluki-27b-iq2",
+      "name": "Underdog Saluki 27B",
+      "description": "Qwen3.8 27B squeezed to 2 bits, tuned to keep tool calling intact. Needs about 10 GB of free memory and is slow on a small GPU. Non-commercial license.",
+      "tags": [
+        "vision"
+      ],
+      "model": {
+        "repo": "ConwayResearch/Underdog-Saluki-27B-1.0",
+        "filename": "Underdog-Saluki-27B-1.0-IQ2-mix.gguf",
+        "size_bytes": 7898369152,
+        "sha256": "4a673518b11b1c4445f9b9a9d3c40356f5ba39f6a6260dcb25f3fbfd475d9efb"
+      },
+      "projector": {
+        "repo": "ConwayResearch/Underdog-Saluki-27B-1.0",
+        "filename": "mmproj-Underdog-Saluki-27B-1.0-Q8_0.gguf",
+        "size_bytes": 629246976,
+        "sha256": "2e0b88b680a45a58eea666b9776a89601b16f4ef575b871a686d82ee65938756"
+      },
+      "context": 8192,
+      "license": "CC-BY-NC-4.0",
+      "license_url": "https://huggingface.co/ConwayResearch/Underdog-Saluki-27B-1.0/blob/main/LICENSE",
+      "recommended": false,
+      "speed": 1,
+      "intelligence": 5,
+      "max_context": 262144,
+      "min_ram_gb": 16
+    },
+    {
+      "id": "gemma4-26b-a4b-q4",
+      "name": "Gemma 4 26B A4B",
+      "description": "Mixture-of-experts model: 26B total, only 4B active per token, so it answers fast for its quality. Needs about 24 GB of memory in total.",
+      "tags": [
+        "vision",
+        "moe"
+      ],
+      "model": {
+        "repo": "unsloth/gemma-4-26B-A4B-it-GGUF",
+        "filename": "gemma-4-26B-A4B-it-UD-Q4_K_M.gguf",
+        "size_bytes": 16947541728,
+        "sha256": "f2c28b3dc4776931ac6f879e11f203dec637ea0f14267a86ec8f6165f63f293f"
+      },
+      "projector": {
+        "repo": "unsloth/gemma-4-26B-A4B-it-GGUF",
+        "filename": "mmproj-F16.gguf",
+        "size_bytes": 1193058784,
+        "sha256": "418a6d8723067cd712235facbbc5cba6c8fbbd413fc1292d2aace5a027d5a42f"
+      },
+      "context": 8192,
+      "max_context": 262144,
+      "min_ram_gb": 24,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF",
+      "recommended": false,
+      "speed": 3,
+      "intelligence": 5
+    },
+    {
+      "id": "qwen3.6-35b-a3b-q4",
+      "name": "Qwen3.6 35B A3B",
+      "description": "Mixture-of-experts model: 35B total, 3B active per token. Strong at tools and long documents. Needs about 28 GB of memory in total.",
+      "tags": [
+        "vision",
+        "moe"
+      ],
+      "model": {
+        "repo": "unsloth/Qwen3.6-35B-A3B-GGUF",
+        "filename": "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+        "size_bytes": 22134528992,
+        "sha256": "ac0e2c1189e055faa36eff361580e79c5bd6f8e76bffb4ce547f167d53e31a61"
+      },
+      "projector": {
+        "repo": "unsloth/Qwen3.6-35B-A3B-GGUF",
+        "filename": "mmproj-F16.gguf",
+        "size_bytes": 899283680,
+        "sha256": "8971ee4f331ff0a4c609374f32984b3d4e6dc086c0aa35f1d637fad1829e887f"
+      },
+      "context": 8192,
+      "max_context": 262144,
+      "min_ram_gb": 28,
+      "license": "Apache-2.0",
+      "license_url": "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF",
+      "recommended": false,
+      "speed": 3,
+      "intelligence": 5
     }
   ]
 }

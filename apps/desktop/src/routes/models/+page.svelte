@@ -9,7 +9,7 @@
   import SpeechModels from "#lib/components/app/speech-models.svelte";
   import VoiceModels from "#lib/components/app/voice-models.svelte";
   import { Tabs, TabsList, TabsTrigger } from "#lib/components/ui/tabs/index.js";
-  import { ChatLineIcon, CpuBoltIcon, DangerTriangleIcon, EyeIcon, MonitorIcon } from "@solar-icons/svelte/linear";
+  import { ChatLineIcon, CpuBoltIcon, CpuIcon, DocumentTextIcon, DownloadMinimalisticIcon, DangerTriangleIcon, EyeIcon, MonitorIcon } from "@solar-icons/svelte/linear";
   import { inTauri } from "#lib/env.js";
   import CardSkeleton from "#lib/components/app/card-skeleton.svelte";
   import PageHeader from "#lib/components/app/page-header.svelte";
@@ -54,6 +54,7 @@
 
   const mb = (b: number) => `${Math.round(b / 1_048_576)} MB`;
   const gb = (b: number) => `${(b / 1_073_741_824).toFixed(1)} GB`;
+  const ctx = (n: number) => (n >= 1000 ? `${Math.round(n / 1024)}K` : String(n));
 
   const loaded = (m: ModelStatus) => {
     const e = llm.engine;
@@ -188,9 +189,24 @@
         icon={m.vision ? EyeIcon : ChatLineIcon}
         title={m.name}
         description={m.description}
-        facts={[gb(m.size_bytes), m.license]}
+        facts={[m.license]}
         active={loaded(m) && llm.engine.state === "ready"}
       >
+        {#snippet specs()}
+          <span class="inline-flex items-center gap-1.5" title="Disk space used by the download">
+            <DownloadMinimalisticIcon size={14} />{gb(m.size_bytes)} on disk
+          </span>
+          {#if m.min_ram_gb}
+            <span class="inline-flex items-center gap-1.5" title="RAM plus GPU memory needed to run it comfortably. Model weights spill from GPU to RAM when the GPU is small.">
+              <CpuIcon size={14} />{m.min_ram_gb} GB+ RAM / VRAM
+            </span>
+          {/if}
+          {#if m.max_context}
+            <span class="inline-flex items-center gap-1.5" title="Longest conversation or document the model can read at once">
+              <DocumentTextIcon size={14} />{ctx(m.max_context)} context
+            </span>
+          {/if}
+        {/snippet}
         {#snippet badges()}
           {#if loaded(m)}<Badge size="sm" variant={llm.engine.state === "loading" ? "info" : "success"}>{llm.engine.state === "loading" ? "Loading" : "Loaded"}</Badge>{/if}
           {#if m.recommended}<Badge size="sm">Recommended</Badge>{/if}
