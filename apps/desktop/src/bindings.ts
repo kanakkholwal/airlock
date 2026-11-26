@@ -1105,6 +1105,55 @@ async jobClear(id: number) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async automationList() : Promise<Result<Automation[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("automation_list") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async automationSave(input: AutomationInput) : Promise<Result<Automation, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("automation_save", { input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async automationDelete(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("automation_delete", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async automationRunNow(id: number) : Promise<void> {
+    await TAURI_INVOKE("automation_run_now", { id });
+},
+async automationRuns(id: number) : Promise<Result<Run[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("automation_runs", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async automationTimezone() : Promise<TimezoneInfo> {
+    return await TAURI_INVOKE("automation_timezone");
+},
+/**
+ * `system` or an IANA name. Every schedule is recomputed in the new zone.
+ */
+async automationSetTimezone(setting: string) : Promise<Result<TimezoneInfo, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("automation_set_timezone", { setting }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async agentDecide(callId: string, answer: Answer) : Promise<void> {
     await TAURI_INVOKE("agent_decide", { callId, answer });
 },
@@ -1635,6 +1684,7 @@ async watchMicLevels(on: boolean) : Promise<void> {
 
 
 export const events = __makeEvents__<{
+automationUpdated: AutomationUpdated,
 historyUpdatePayload: HistoryUpdatePayload,
 jobUpdated: JobUpdated,
 llmStateChanged: LlmStateChanged,
@@ -1645,6 +1695,7 @@ streamTextEvent: StreamTextEvent,
 transcriptionCompleteEvent: TranscriptionCompleteEvent,
 transcriptionJob: TranscriptionJob
 }>({
+automationUpdated: "automation-updated",
 historyUpdatePayload: "history-update-payload",
 jobUpdated: "job-updated",
 llmStateChanged: "llm-state-changed",
@@ -1811,6 +1862,13 @@ export type AutoUnavailableReason =
  * None of their languages fit the model.
  */
 { kind: "no_match" }
+export type Automation = { id: number; name: string; cron: string; action: string; enabled: boolean; 
+/**
+ * `skip` or `run_once`.
+ */
+catchup: string; next_run_ms: number | null; last_run_ms: number | null }
+export type AutomationInput = { id: number | null; name: string; cron: string; action: string; enabled: boolean; catchup: string }
+export type AutomationUpdated = Automation
 export type AvailableAccelerators = { transcribe: string[]; gpu_devices: GpuDeviceOption[] }
 /**
  * Which official llama.cpp build to run. Decision (architecture): Vulkan is the default on
@@ -2169,6 +2227,11 @@ export type Role = "system" | "user" | "assistant" | "tool"
  * stands for any run of characters. No pattern means every call of that tool.
  */
 export type Rule = { action: Action; tool: string; pattern?: string | null }
+export type Run = { id: number; automation_id: number; started_ms: number; finished_ms: number | null; 
+/**
+ * running, done, failed or skipped.
+ */
+status: string; message: string }
 export type SecretMap = Partial<{ [key in string]: string }>
 export type SecureInputStatus = { 
 /**
@@ -2273,6 +2336,15 @@ export type Theme = "system" | "light" | "dark"
  * so a podcast or a meeting can be read, searched and exported by time.
  */
 export type TimedSegment = { start_ms: number; end_ms: number; text: string }
+export type TimezoneInfo = { 
+/**
+ * `system` or an IANA name.
+ */
+setting: string; 
+/**
+ * The zone schedules use right now.
+ */
+effective: string; system: string }
 export type ToolInfo = { name: string; description: string; risk: Risk; needs_folder: boolean; enabled: boolean }
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 /**

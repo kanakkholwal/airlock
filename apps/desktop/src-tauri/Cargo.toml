@@ -108,6 +108,9 @@ bzip2 = "0.6"
 tar = "0.4.46"
 rand = "0.8"
 base64 = "0.22"
+croner = "5.0.0"
+chrono-tz = "0.10.4"
+iana-time-zone = "0.1.65"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"

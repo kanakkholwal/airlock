@@ -1,4 +1,5 @@
 mod agent;
+mod automation;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 pub mod audio_toolkit;
@@ -227,6 +228,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     data::init(app_handle);
     agent::manage(app_handle);
     library::manage(app_handle);
+    automation::manage(app_handle);
     llm::commands::manage(app_handle);
     llm::models::manage(app_handle);
     image::manage(app_handle);
@@ -869,6 +871,13 @@ pub fn run(cli_args: CliArgs) {
             library::jobs::job_cancel,
             library::jobs::job_list,
             library::jobs::job_clear,
+            automation::automation_list,
+            automation::automation_save,
+            automation::automation_delete,
+            automation::automation_run_now,
+            automation::automation_runs,
+            automation::automation_timezone,
+            automation::automation_set_timezone,
             agent::agent_decide,
             agent::config::agent_get_config,
             agent::config::agent_set_config,
@@ -949,6 +958,7 @@ pub fn run(cli_args: CliArgs) {
             notices::NoticesChanged,
             llm::engine::LlmStateChanged,
             library::jobs::JobUpdated,
+            automation::AutomationUpdated,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

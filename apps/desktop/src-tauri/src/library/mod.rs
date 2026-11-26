@@ -56,7 +56,7 @@ pub struct Artifact {
 }
 
 pub struct Library {
-    conn: Mutex<Connection>,
+    pub(crate) conn: Mutex<Connection>,
 }
 
 /// Where relative paths in the library start: the app data folder.
@@ -134,7 +134,8 @@ pub(crate) fn init(conn: &Connection) -> rusqlite::Result<()> {
             checkpoint TEXT,
             created_ms REAL NOT NULL
         );",
-    )
+    )?;
+    crate::automation::init(conn)
 }
 
 /// First ~160 characters on one line.
